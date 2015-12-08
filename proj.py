@@ -46,7 +46,8 @@ gHamsterBox = None
 
 gEventQueue = Queue.Queue()
 gBeepQueue = Queue.Queue()
-gWheelQueue = Queue.Queue()
+#g___Queue[0] is human, [1] is AI
+gWheelQueue = [Queue.Queue(), Queue.Queue()]
 
 FSM = None
 
@@ -153,7 +154,7 @@ def createProximityBars():
 def done():
   global gBeepQueue, gWheelQueue
   finishSong = [76, 71, 64, 71, 76, 71, 64, 71, 76, 0]
-  gWheelQueue.put([100, -100, 5])
+  gWheelQueue[0].put([100, -100, 5])
   for i in range(len(finishSong)):
     gBeepQueue.put([finishSong[i], randint(1, 7), randint(1, 7), 0.2])
   gBeepQueue.put([0, 2,2, 0])
@@ -168,7 +169,7 @@ def backUpDelay():
 def backUp():
   global gBeepQueue, gWheelQueue
   global gNumCleared
-  gWheelQueue.put([-100, -100, 0.5])
+  gWheelQueue[0].put([-100, -100, 0.5])
 
 def foundObjectClose():
   for robot in gRobotList:
@@ -177,7 +178,7 @@ def foundObjectClose():
     return (left > CLEARED_OBJ_THRESHOLD or right > CLEARED_OBJ_THRESHOLD)
 
 def checkSuccess():
-  gWheelQueue.put([0, 0, 0])
+  gWheelQueue[0].put([0, 0, 0])
 
 def turnAroundFull():
   global gBeepQueue, gWheelQueue
@@ -187,17 +188,17 @@ def turnAroundFull():
     gBeepQueue.put([70, 2, 2, 0.1])
     gBeepQueue.put([0, 0, 0, 0.1])
     duration = randint(5, 10) / 10.0
-  gWheelQueue.put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
+  gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
   time.sleep(duration + 0.5)
 
 def backUpTurnAroundEmpty():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
   for robot in gRobotList:
-    gWheelQueue.put([-100, -100, 0.5])
+    gWheelQueue[0].put([-100, -100, 0.5])
 
     duration = randint(5, 10) / 10.0
-    gWheelQueue.put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
+    gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
     time.sleep(duration + 0.5)
 
 def turnAroundEmpty():
@@ -206,7 +207,7 @@ def turnAroundEmpty():
   gBeepQueue.put([30, 4, 4, 0.5])
   for robot in gRobotList:
     duration = randint(5, 10) / 10.0
-    gWheelQueue.put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
+    gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
     time.sleep(duration + 0.5)
 
 
@@ -234,15 +235,7 @@ def pushObject():
       left = robot.get_proximity(0)
       right = robot.get_proximity(1)
       correction = (right - left) / 2
-      gWheelQueue.put([WHEEL_SPEED + correction, WHEEL_SPEED - correction, 0.1])
-      '''
-      if left > right:
-        gWheelQueue.put([int(WHEEL_SPEED * 0.75), WHEEL_SPEED, 0.1])
-      elif left < right:
-        gWheelQueue.put([WHEEL_SPEED, int(WHEEL_SPEED * 0.75), 0.1])
-      else:
-        gWheelQueue.put([WHEEL_SPEED, WHEEL_SPEED, 0.1])
-      '''
+      gWheelQueue[0].put([WHEEL_SPEED + correction, WHEEL_SPEED - correction, 0.1])
       print 'left proximity: ', left, ' right:', right
       time.sleep(0.1)
 
@@ -255,7 +248,7 @@ def foundObject():
 def alignObject():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  gWheelQueue.put([0, 0, 0])
+  gWheelQueue[0].put([0, 0, 0])
   gBeepQueue.put([50, 3, 3, 0.2])
 
   while not gKillBehavior:
@@ -264,9 +257,9 @@ def alignObject():
       right = robot.get_proximity(1)
       correction = abs((right - left) / 2)
       if left > right:
-        gWheelQueue.put([10, 10 + correction, 0.1])
+        gWheelQueue[0].put([10, 10 + correction, 0.1])
       elif left < right:
-        gWheelQueue.put([10+correction, 10, 0.1])
+        gWheelQueue[0].put([10+correction, 10, 0.1])
       time.sleep(0.1)
 
 
@@ -281,8 +274,7 @@ def onWhite():
 def waitForWhite():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  #gWheelQueue.put([0, 0, 0])
-  gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
+  gWheelQueue[0].put([ 1, 5, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
@@ -296,18 +288,8 @@ def searchFwd():
   while not gKillBehavior:
     #fwdInterval = randint(10, 50) / 10.0
     skew = randint(-WHEEL_SPEED/5, WHEEL_SPEED/5)
-    #gWheelQueue.put([WHEEL_SPEED+skew, WHEEL_SPEED-skew, fwdInterval])
-    gWheelQueue.put([WHEEL_SPEED+skew, WHEEL_SPEED-skew, 0.1])
+    gWheelQueue[0].put([WHEEL_SPEED+skew, WHEEL_SPEED-skew, 0.1])
     time.sleep(0.1)
-  '''
-  while(True):
-    if (note > 88):
-      note = (note % 88) + 1
-    gBeepQueue.put([note, 1, 1, 0.05])
-    time.sleep(0.05)
-    note += 12
-  '''
-
 
 def fsm_init():
   global FSM
@@ -369,14 +351,15 @@ def display_target():
 
     time.sleep(0.1)
 
-def wheel_target():
+def wheel_target(queue_ind):
   global gWheelQueue
   global gQuit
 
-  #Queue element format: [Left wheel, Right wheel, duration]
+  #Queue element format: [Left wheel, Right wheel, duration/linetrace]
   #If duration == 0, holds indefinitely until next element dequeued
   while not gQuit:
-    movement = gWheelQueue.get(True)
+    movement = gWheelQueue[queue_ind].get(True)
+    print 'queue_ind: ', queue_ind, 'movement: ', movement
     print 'movement: ', movement
     for robot in gRobotList:
       robot.set_wheel(0, movement[0])
@@ -385,7 +368,7 @@ def wheel_target():
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
         robot.set_line_tracer_mode_speed(movement[0], movement[1])
-			else:
+      elif movement[2] > 0:
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
@@ -434,7 +417,7 @@ def StartRace(event=None):
     beep_thread.daemon = True
     beep_thread.start()
 
-    wheel_thread = threading.Thread(target = wheel_target)
+    wheel_thread = threading.Thread(target = wheel_target, args=(0,))
     wheel_thread.daemon = True
     wheel_thread.start()
 
@@ -531,15 +514,15 @@ class VirtualWorldGui:
             drawCommand()
         
 class Joystick:
-    def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x'])
+    def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x']):
         self.gMaxRobotNum = 1
         self.gRobotList = comm.robotList
         self.m = m
         self.vrobot = vrobot
-				self.robot_i = robot_i
+        self.robot_i = robot_i
 
         self.vrobot.t = time.time()
-				
+        
 
         gCanvas.bind_all('<' + keyBindings[0] + '>', self.move_up)
         gCanvas.bind_all('<' + keyBindings[1] + '>', self.move_down)
