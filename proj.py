@@ -53,6 +53,8 @@ FSM = None
 UPDATE_INTERVAL = 30
 FLAG_LINETRACE = -1
 
+gVrobotList = None
+
 class State:
     def __init__(self):
       self.name = ''
@@ -406,7 +408,6 @@ def beep_target():
         robot.set_led(0, 0)
         robot.set_led(1, 0)
 
-
 def StartRace(event=None):
   global monitor_thread, dispatch_thread
   global display_thread, beep_thread, wheel_thread
@@ -651,6 +652,8 @@ class Joystick:
                     #--- if sr < 0 and sl > 0, rotates counter-clockwise
                     if (self.vrobot.sl > 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor_cw 
                     if (self.vrobot.sl < 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor2_ccw
+
+                #---update position if line tracer is being used---#
                 
                 #---update sensors and get dist_l and dist_r
                 prox_l = robot.get_proximity(0)
@@ -690,6 +693,7 @@ def draw_virtual_world(virtual_world, joystick):
     while not gQuit:
         if joystick.gRobotList is not None:
             virtual_world.draw_robot()
+            virtual_world.draw_robotAI()
             virtual_world.draw_prox("left")
             virtual_world.draw_prox("right")
             virtual_world.store_prox()
@@ -731,10 +735,12 @@ def main():
   # tk.Button(frame, text="Start Race", command=startrace).pack()
   # tk.Button(frame, text="Stop Threads", command=stop).pack()
 
-  # create virtual robot data object
+  # create 2 virtual robot data objects
   vrobot = virtual_robot()
   pi4 = 3.1415 / 4
   vrobot.set_robot_a_pos(pi4*2, -540, +340)
+  vrobotAI = virtual_robot()
+  vrobotAI.set_robot_a_pos(pi4*2, -540, +300)
 
   # create UI
   frame = tk.Tk()
@@ -752,6 +758,13 @@ def main():
   joystick.vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
   joystick.vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
 
+  joystick2 = Joystick(comm, frame, gCanvas, vrobotAI)
+  joystick2.vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='pink') #robot
+  joystick2.vrobot.prox_l_id = gCanvas.create_line(0,0,0,0, fill="red") #prox sensors  ---- here
+  joystick2.vrobot.prox_r_id = gCanvas.create_line(0,0,0,0, fill="red")
+  joystick2.vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
+  joystick2.vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
+
   time.sleep(1)
 
   update_vrobot_thread = threading.Thread(target=joystick.update_virtual_robot)
@@ -760,7 +773,7 @@ def main():
 
   # virtual world UI
   drawQueue = Queue.Queue(0)
-  vWorld = virtual_world(drawQueue, joystick, joystick.vrobot, gCanvas, canvas_width, canvas_height)
+  vWorld = virtual_world(drawQueue, joystick, vrobot, vrobotAI, gCanvas, canvas_width, canvas_height)
   rectA = [-560, 300, -520, 260]
   vWorld.add_obstacle(rectA)
 

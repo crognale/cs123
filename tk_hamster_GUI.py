@@ -102,12 +102,13 @@ class virtual_robot:
         self.goal_list.append(goal)
 
 class virtual_world:
-    def __init__(self, drawQueue, joystick=None, vrobot=None, canvas=None, canvas_width=0,
+    def __init__(self, drawQueue, joystick=None, vrobot=None, vrobotAI=None, canvas=None, canvas_width=0,
                  canvas_height=0, mp=None, trace=False, prox_dots=False,
                  floor_dots=False):
         self.drawQueue = drawQueue
         self.joystick = joystick
         self.vrobot = vrobot
+        self.vrobotAI = vrobotAI
         self.canvas = canvas
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
@@ -139,6 +140,7 @@ class virtual_world:
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
         pi4 = 3.1415 / 4 # quarter pi
+
         vrobot = self.vrobot
         #print "a",vrobot.a
         a1 = vrobot.a + pi4
@@ -172,6 +174,46 @@ class virtual_world:
             y2 = canvas_height - 3 * math.cos(a2) - vrobot.y
             y3 = canvas_height - 3 * math.cos(a3) - vrobot.y
             self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
+
+    def draw_robotAI(self):
+        canvas_width = self.canvas_width
+        canvas_height = self.canvas_height
+        pi4 = 3.1415 / 4 # quarter pi
+        
+        vrobot = self.vrobotAI
+        #print "a",vrobot.a
+        a1 = vrobot.a + pi4
+        a2 = vrobot.a + 3*pi4
+        a3 = vrobot.a + 5*pi4
+        a4 = vrobot.a + 7*pi4
+
+        x1 = canvas_width + vrobot.l * math.sin(a1) + vrobot.x
+        x2 = canvas_width + vrobot.l * math.sin(a2) + vrobot.x
+        x3 = canvas_width + vrobot.l * math.sin(a3) + vrobot.x        
+        x4 = canvas_width + vrobot.l * math.sin(a4) + vrobot.x
+
+        y1 = canvas_height - vrobot.l * math.cos(a1) - vrobot.y
+        y2 = canvas_height - vrobot.l * math.cos(a2) - vrobot.y
+        y3 = canvas_height - vrobot.l * math.cos(a3) - vrobot.y
+        y4 = canvas_height - vrobot.l * math.cos(a4) - vrobot.y
+
+        points = (x1,y1,x2,y2,x3,y3,x4,y4)
+        poly_id = vrobot.poly_id
+        self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
+
+        if (self.trace):
+            pi3 = 3.1415/3
+            a1 = vrobot.a
+            a2 = a1 + 2*pi3
+            a3 = a1 + 4*pi3
+            x1 = canvas_width + 3 * math.sin(a1) + vrobot.x
+            x2 = canvas_width + 3 * math.sin(a2) + vrobot.x
+            x3 = canvas_width + 3 * math.sin(a3) + vrobot.x 
+            y1 = canvas_height - 3 * math.cos(a1) - vrobot.y
+            y2 = canvas_height - 3 * math.cos(a2) - vrobot.y
+            y3 = canvas_height - 3 * math.cos(a3) - vrobot.y
+            self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="pink"))
+
 
     def draw_prox(self, side):
         canvas_width = self.canvas_width
