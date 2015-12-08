@@ -28,7 +28,7 @@ TURN_SPEED = 10
 FLOOR_BLACK = 60
 FLOOR_WHITE = 80
 
-gMaxRobotNum = 1
+gMaxRobotNum = 2
 gRobotList = None
 
 CLEAR_TARGET = 3
@@ -275,6 +275,7 @@ def waitForWhite():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
   gWheelQueue[0].put([ 1, 5, FLAG_LINETRACE])
+  gWheelQueue[1].put([ 1, 5, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
@@ -361,7 +362,9 @@ def wheel_target(queue_ind):
     movement = gWheelQueue[queue_ind].get(True)
     print 'queue_ind: ', queue_ind, 'movement: ', movement
     print 'movement: ', movement
-    for robot in gRobotList:
+    if gRobotList and len(gRobotList) > queue_ind:
+      robot = gRobotList[queue_ind]
+
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
       if (movement[2] == FLAG_LINETRACE):
@@ -393,7 +396,7 @@ def beep_target():
 
 def StartRace(event=None):
   global monitor_thread, dispatch_thread
-  global display_thread, beep_thread, wheel_thread
+  global display_thread, beep_thread, wheel_threads
   global gNumCleared
 
   if (len(gRobotList) > 0):
@@ -417,9 +420,11 @@ def StartRace(event=None):
     beep_thread.daemon = True
     beep_thread.start()
 
-    wheel_thread = threading.Thread(target = wheel_target, args=(0,))
-    wheel_thread.daemon = True
-    wheel_thread.start()
+    wheel_threads = []
+    for i in [0, 1]:
+      wheel_threads.append(threading.Thread(target = wheel_target, args=(i,)))
+      wheel_threads[i].daemon = True
+      wheel_threads[i].start()
 
 
 def startrace(self):
