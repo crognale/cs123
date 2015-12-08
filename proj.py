@@ -381,14 +381,14 @@ def wheel_target():
     for robot in gRobotList:
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
-      if (movement[2] > 0):
-        time.sleep(movement[2])
-        robot.set_wheel(0, 0)
-        robot.set_wheel(1, 0)
       if (movement[2] == FLAG_LINETRACE):
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
         robot.set_line_tracer_mode_speed(movement[0], movement[1])
+			else:
+        time.sleep(movement[2])
+        robot.set_wheel(0, 0)
+        robot.set_wheel(1, 0)
 
 def beep_target():
   global gBeepQueue
@@ -531,25 +531,27 @@ class VirtualWorldGui:
             drawCommand()
         
 class Joystick:
-    def __init__(self, comm, m, gCanvas, vrobot):
+    def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x'])
         self.gMaxRobotNum = 1
         self.gRobotList = comm.robotList
         self.m = m
         self.vrobot = vrobot
+				self.robot_i = robot_i
 
         self.vrobot.t = time.time()
+				
 
-        gCanvas.bind_all('<w>', self.move_up)
-        gCanvas.bind_all('<s>', self.move_down)
-        gCanvas.bind_all('<a>', self.move_left)
-        gCanvas.bind_all('<d>', self.move_right)
-        gCanvas.bind_all('<x>', self.stop_move)  
+        gCanvas.bind_all('<' + keyBindings[0] + '>', self.move_up)
+        gCanvas.bind_all('<' + keyBindings[1] + '>', self.move_down)
+        gCanvas.bind_all('<' + keyBindings[2] + '>', self.move_left)
+        gCanvas.bind_all('<' + keyBindings[3] + '>', self.move_right)
+        gCanvas.bind_all('<' + keyBindings[4] + '>', self.stop_move)  
         gCanvas.pack()
 
     # joysticking the robot 
     def move_up(self, event=None):
-        if self.gRobotList:
-            robot = self.gRobotList[0]
+        if self.gRobotList and len(self.gRobotList) > self.robot_i:
+            robot = self.gRobotList[self.robot_i]
             self.vrobot.sl = 30
             self.vrobot.sr = 30   
             robot.set_wheel(0,self.vrobot.sl)
@@ -557,8 +559,8 @@ class Joystick:
             self.vrobot.t = time.time()
 
     def move_down(self, event=None):
-        if self.gRobotList:   
-            robot = self.gRobotList[0]
+        if self.gRobotList and len(self.gRobotList) > self.robot_i:
+            robot = self.gRobotList[self.robot_i]
             self.vrobot.sl = -30
             self.vrobot.sr = -30   
             robot.set_wheel(0,self.vrobot.sl)
@@ -566,8 +568,8 @@ class Joystick:
             self.vrobot.t = time.time()
 
     def move_left(self, event=None):
-        if self.gRobotList: 
-            robot = self.gRobotList[0]
+        if self.gRobotList and len(self.gRobotList) > self.robot_i:
+            robot = self.gRobotList[self.robot_i]
             self.vrobot.sl = -15
             self.vrobot.sr = 15   
             robot.set_wheel(0,self.vrobot.sl)
@@ -575,8 +577,8 @@ class Joystick:
             self.vrobot.t = time.time()       
 
     def move_right(self, event=None):
-        if self.gRobotList: 
-            robot = self.gRobotList[0]
+        if self.gRobotList and len(self.gRobotList) > self.robot_i:
+            robot = self.gRobotList[self.robot_i]
             self.vrobot.sl = 15
             self.vrobot.sr = -15  
             robot.set_wheel(0,self.vrobot.sl)
@@ -584,8 +586,9 @@ class Joystick:
             self.vrobot.t = time.time()      
 
     def stop_move(self, event=None):
-        if self.gRobotList: 
-            robot = self.gRobotList[0]
+        if self.gRobotList and len(self.gRobotList) > self.robot_i:
+            robot = self.gRobotList[self.robot_i]
+            robot = self.gRobotList[self.robot_i]
             self.vrobot.sl = 0
             self.vrobot.sr = 0
             robot.set_wheel(0,self.vrobot.sl)
@@ -634,10 +637,10 @@ class Joystick:
 
         while not gQuit:
             if self.gRobotList is not None:
-                robot = self.gRobotList[0]
+                robot = self.gRobotList[self.robot_i]
 
                 #--- update wheel balance
-                self.gRobotList[0].set_wheel_balance(3)
+                self.gRobotList[self.robot_i].set_wheel_balance(3)
 
                 t = time.time()
                 del_t = t - self.vrobot.t
