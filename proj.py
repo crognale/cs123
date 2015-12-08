@@ -51,6 +51,7 @@ gWheelQueue = Queue.Queue()
 FSM = None
 
 UPDATE_INTERVAL = 30
+FLAG_LINETRACE = -1
 
 class State:
     def __init__(self):
@@ -278,7 +279,8 @@ def onWhite():
 def waitForWhite():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  gWheelQueue.put([0, 0, 0])
+  #gWheelQueue.put([0, 0, 0])
+  gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
@@ -381,6 +383,10 @@ def wheel_target():
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
+      if (movement[2] == FLAG_LINETRACE):
+        robot.set_wheel(0, 0)
+        robot.set_wheel(1, 0)
+        robot.set_line_tracer_mode_speed(movement[0], movement[1])
 
 def beep_target():
   global gBeepQueue
@@ -401,7 +407,7 @@ def beep_target():
         robot.set_led(1, 0)
 
 
-def StartClean(event=None):
+def StartRace(event=None):
   global monitor_thread, dispatch_thread
   global display_thread, beep_thread, wheel_thread
   global gNumCleared
@@ -423,7 +429,6 @@ def StartClean(event=None):
     dispatch_thread.daemon = True
     dispatch_thread.start()
 
-
     beep_thread = threading.Thread(target = beep_target)
     beep_thread.daemon = True
     beep_thread.start()
@@ -434,11 +439,8 @@ def StartClean(event=None):
 
 
 def startrace(self):
-    gEventQueue.put( "start", StartClean )
-    print "start button pressed"
-
-def linetrace(self):
-    print "line trace button pressed"
+    gEventQueue.put( "start", StartRace )
+    print "start button pressed: start monitor and dispatch threads"
 
 def stop(self):
     print "stop threads button pressed"
@@ -462,15 +464,30 @@ def draw_track():
       trackoriginx, trackoriginy + trackcutamount, \
       outline="black", fill="white", width=2)
 
+  line = gCanvas.create_line(trackoriginx, trackheight + 40, trackoriginx + 20, trackheight + 40, width = 3)
+
+  text = gCanvas.create_text(trackoriginx, trackheight + 60, font="Purisa",
+            text="28 mm")
+
+  text = gCanvas.create_text(trackoriginx + trackwidth/2, trackheight + 60, font="Purisa",
+            text="560 mm")
+
+  text = gCanvas.create_text(trackoriginx + trackwidth + 40, trackoriginy + trackheight/2, font="Purisa",
+            text="280 mm")
+
   gCanvas.pack(fill=tk.BOTH, expand=1)
 
 class VirtualWorldGui:
     def __init__(self, vWorld, m):
         self.vworld = vWorld
 
-        self.button0 = tk.Button(m,text="Exit")
-        self.button0.pack(side='left')
-        self.button0.bind('<Button-1>', stopProg)
+        startRaceButton = tk.Button(m,text="Start Race")
+        startRaceButton.pack(side='left')
+        startRaceButton.bind('<Button-1>', StartRace)
+
+        exitButton = tk.Button(m,text="Exit")
+        exitButton.pack(side='left')
+        exitButton.bind('<Button-1>', stopProg)
 
     def resetvRobot(self, event=None):
         self.vworld.vrobot.reset_robot()
@@ -495,7 +512,7 @@ class VirtualWorldGui:
             x = j * del_x
             self.vworld.canvas.create_line(x, y1, x, y2, fill="yellow")
 
-    def cleagCanvas(self, event=None):
+    def cleanCanvas(self, event=None):
         vcanvas = self.vworld.canvas
         vrobot = self.vworld.vrobot
         vcanvas.delete("all")
