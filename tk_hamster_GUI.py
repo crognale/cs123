@@ -25,17 +25,6 @@ import math
 import Queue
 import numpy as np #--- linear regression
 
-#------ Normalize angle function --------#
-#----------------------------------------#
-def normalize(angle):
-    pi4 = 3.1415 / 4 # quarter pi
-    newAngle = angle
-    while newAngle > 2 * pi4 * 4 :
-        newAngle = newAngle - 2 * pi4 * 4
-    while newAngle < - 2 * pi4 * 4 :
-        newAngle = newAngle + 2 * pi4 * 4
-    return newAngle
-
 class virtual_robot:
     def __init__(self):
         #self.robot = None
