@@ -143,7 +143,7 @@ class virtual_world:
         canvas_height = self.canvas_height
         pi4 = 3.1415 / 4 # quarter pi
 
-        #print "draw_robot sees ", len(self.vrobotlist), "robots"
+        print "draw_robot sees ", len(self.vrobotlist), "robots"
 
         # draw each robot
         for vrobot in self.vrobotlist:
@@ -166,7 +166,9 @@ class virtual_world:
             points = (x1,y1,x2,y2,x3,y3,x4,y4)
             poly_id = vrobot.poly_id
 
-            #print "poly_id", poly_id
+            print "poly_id", poly_id, 'points',points
+            #ids = self.canvas.find_withtag(tk.ALL)
+            #print ids
 
             self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
 

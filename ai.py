@@ -6,6 +6,7 @@ import Tkinter as tk
 import Queue
 from random import randint
 from tk_hamster_GUI import *
+import inspect #for debugging
 
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
@@ -23,11 +24,8 @@ TURN_SPEED = 10
 FLOOR_BLACK = 60
 FLOOR_WHITE = 80
 
-gMaxRobotNum = 10
+gMaxRobotNum = 1
 gRobotList = None
-
-CLEAR_TARGET = 3
-gNumCleared = 0
 
 gQuit = False
 gKillBehavior = False
@@ -335,7 +333,6 @@ class VirtualWorldGui:
 
     def updateCanvas(self, drawQueue):
         self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
-        #print drawQueue.qsize()
         while (drawQueue.qsize() > 0):
             drawCommand = drawQueue.get()
             drawCommand()
@@ -438,7 +435,7 @@ class Joystick:
         a_factor_cw = 16.71 # rotation conversion, assuming linear
         a_factor2_ccw = 16
 
-        while not self.gRobotList:
+        while (not self.gRobotList) or (len(self.goRobotList) <= robot_i):
             print "waiting for robot to connect"
             time.sleep(0.1)
 
@@ -446,6 +443,7 @@ class Joystick:
 
         while not gQuit:
             if self.gRobotList and len(self.gRobotList) > self.robot_i:
+                print 'update virtual robot for ', self.robot_i
                 robot = self.gRobotList[self.robot_i]
 
                 t = time.time()
@@ -563,6 +561,7 @@ def main():
     update_vrobot_thread = threading.Thread(target=joystick[robot_i].update_virtual_robot)
     update_vrobot_thread.daemon = True
     update_vrobot_thread.start()
+
 
   # virtual world UI
   drawQueue = Queue.Queue(0)
