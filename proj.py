@@ -23,7 +23,7 @@ TURN_SPEED = 10
 FLOOR_BLACK = 60
 FLOOR_WHITE = 80
 
-gMaxRobotNum = 2
+gMaxRobotNum = 10
 gRobotList = None
 
 CLEAR_TARGET = 3
@@ -241,7 +241,8 @@ def draw_track():
   trackheight = 560
   trackcutamount = 560/4
 
-  rect = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
+  #outer track
+  outertrack = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
       trackoriginx + trackwidth - trackcutamount, trackoriginy, \
       trackoriginx + trackwidth, trackoriginy + trackcutamount, \
       trackoriginx + trackwidth, trackoriginy + trackheight - trackcutamount, \
@@ -250,6 +251,28 @@ def draw_track():
       trackoriginx, trackoriginy + trackheight - trackcutamount, \
       trackoriginx, trackoriginy + trackcutamount, \
       outline="black", fill="white", width=2)
+
+  # inner track
+  trackoriginx = 40+80
+  trackoriginy = 40+80
+  trackwidth = 840 - 80*2
+  trackheight = 560 - 80*2
+  trackcutamount = (560 - 80*2)/4
+  innertrack = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
+      trackoriginx + trackwidth - trackcutamount, trackoriginy, \
+      trackoriginx + trackwidth, trackoriginy + trackcutamount, \
+      trackoriginx + trackwidth, trackoriginy + trackheight - trackcutamount, \
+      trackoriginx + trackwidth - trackcutamount, trackoriginy + trackheight, \
+      trackoriginx + trackcutamount, trackoriginy + trackheight, \
+      trackoriginx, trackoriginy + trackheight - trackcutamount, \
+      trackoriginx, trackoriginy + trackcutamount, \
+      outline="black", fill="white", width=2)
+
+  trackoriginx = 40
+  trackoriginy = 40
+  trackwidth = 840
+  trackheight = 560
+  trackcutamount = 560/4
 
   line = gCanvas.create_line(trackoriginx, trackheight + 40, trackoriginx + 20, trackheight + 40, width = 3)
 
@@ -504,30 +527,6 @@ def main():
 
   display_thread = False
 
-  # frame = tk.Tk()
-  # CANVAS_SIZE = 800
-  # gCanvas = tk.Canvas(frame, bg="white", width=CANVAS_SIZE, height=CANVAS_SIZE)
-  # gCanvas.pack(expand=1, fill='both')
-
-  # draw_track()
-
-  # # UI
-  # gHamsterBox = gCanvas.create_rectangle(BOX_X, BOX_Y, BOX_X + BOX_SIZE,
-  #     BOX_Y + BOX_SIZE, fill="white", width=BORDER_WIDTH)
-  # cleanButton = tk.Button(frame, text="Start")
-  # cleanButton.pack()
-  # cleanButton.bind('<Button-1>', StartClean)
-  # tk.Button(frame, text="Quit", command=quit).pack()
-  # tk.Button(frame, text="Start Race", command=startrace).pack()
-  # tk.Button(frame, text="Stop Threads", command=stop).pack()
-
-  # create 2 virtual robot data objects
-  vrobot = []
-  for robot_i in range(gMaxRobotNum):
-    vrobot.append ( virtual_robot() )
-    pi4 = 3.1415 / 4
-    vrobot[robot_i].set_robot_a_pos(pi4*2, -540 + robot_i * 20, +340 - robot_i * 40)
-
   # create UI
   frame = tk.Tk()
   canvas_width = 700 # half width
@@ -535,10 +534,18 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  # keyboard input
+  # create 2 virtual robot data objects
+  vrobot = []
   joystick = []
+  keyBindings = []
   for robot_i in range(gMaxRobotNum):
-    keyBindings = []
+    vrobot.append ( virtual_robot() )
+    pi4 = 3.1415 / 4
+
+    # robot starting positions
+    vrobot[robot_i].set_robot_a_pos(pi4*2, -520 + robot_i * 40, +340 - robot_i * 80)
+
+    # keyboard input
     if robot_i == 0:
       keyBindings = ['w','s','a','d','x']
     elif robot_i == 1:
@@ -560,7 +567,7 @@ def main():
   # virtual world UI
   drawQueue = Queue.Queue(0)
   vWorld = virtual_world(drawQueue, joystick, vrobot, gCanvas, canvas_width, canvas_height)
-  landmark = [-560, 260, -520, 220]
+  landmark = [-500, 220, -460, 180]
   vWorld.add_obstacle(landmark)
 
   draw_world_thread = threading.Thread(target=draw_virtual_world, args=(vWorld,))
