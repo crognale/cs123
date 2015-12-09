@@ -742,7 +742,7 @@ def main():
       keyBindings = ['w','s','a','d','x']
     elif robot_i == 1:
       keyBindings = ['i','k','j','l',',']
-    joystick.append( Joystick(comm, frame, gCanvas, vrobot[robot_i], robot_i) )
+    joystick.append( Joystick(comm, frame, gCanvas, vrobot[robot_i], robot_i, keyBindings) )
     poly_points = [0,0,0,0,0,0,0,0]
     joystick[robot_i].vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='blue') #robot
     joystick[robot_i].vrobot.prox_l_id = gCanvas.create_line(0,0,0,0, fill="red") #prox sensors  ---- here
