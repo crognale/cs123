@@ -171,11 +171,13 @@ def follow():
       time.sleep(0.1)
 
 def blockedAhead():
-  for i in range(2):
-    if not stopped:
-      return False
-    time.sleep(0.1)
-  return True
+  block_threshold = 50
+  for robot in gRobotList:
+    prox_l = robot.get_proximity(0)
+    prox_r = robot.get_proximity(1)
+    if prox_l > block_threshold or prox_r > block_threshold:
+      return True
+  return False
 
 def switching():
   global gWheelQueue, track
@@ -184,9 +186,9 @@ def switching():
   #while (not gKillBehavior):
   for robot in gRobotList:
     if track == 'outer':
-      gWheelQueue.put([100, -100, 0.2])
+      gWheelQueue.put([100, -100, 0.1])
     else:
-      gWheelQueue.put([-100, 100, 0.2])
+      gWheelQueue.put([-100, 100, 0.1])
     gWheelQueue.put([100, 100, 0])
 
 
@@ -195,8 +197,8 @@ def onWhite():
   for robot in gRobotList:
     floor_l = robot.get_floor(0)
     floor_r = robot.get_floor(1)
+    return floor_l > FLOOR_WHITE and floor_r > FLOOR_WHITE
     #print 'l: ', floor_l, 'r: ', floor_r
-  return floor_l > FLOOR_WHITE and floor_r > FLOOR_WHITE
 
 def oneOnBlack():
   for robot in gRobotList:
