@@ -48,9 +48,10 @@ UPDATE_INTERVAL = 30
 FLAG_LINETRACE = -1
 
 vWorld = None
-gBoostTime = None
+gTimeOfLastBoost = None
 gBoostButtonPressed = False
 BOOST_DURATION = 2
+BOOST_REFRACTORY = 5
 
 class State:
     def __init__(self):
@@ -142,9 +143,10 @@ def waitForWhite():
     time.sleep(0.2)
 
 def WaitForWhite_to_Boost():
-  global gBoostButtonPressed
-  if gBoostButtonPressed == True:
+  global gBoostButtonPressed, gTimeOfLastBoost
+  if gBoostButtonPressed == True and ( time.time() - gTimeOfLastBoost ) > BOOST_REFRACTORY:
     gBoostButtonPressed = False
+    gTimeOfLastBoost = time.time()
     return True
   return False
 
@@ -222,6 +224,8 @@ def StartRaceButtonPressed(event=None):
   global monitor_thread, dispatch_thread
   global display_thread, beep_thread, wheel_threads
   global gNumCleared
+  global gTimeOfLastBoost
+  gTimeOfLastBoost = time.time()
 
   if (len(gRobotList) > 0):
 
