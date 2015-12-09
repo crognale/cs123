@@ -678,10 +678,10 @@ def stopProg(event=None):
     gQuit = True
     print "Exit"
 
-def draw_virtual_world(virtual_world, joystick):
+def draw_virtual_world(virtual_world):
     time.sleep(1) # give time for robot to connect.
     while not gQuit:
-        if joystick.gRobotList is not None:
+        if gRobotList is not None:
             virtual_world.draw_robot()
             virtual_world.draw_prox("left")
             virtual_world.draw_prox("right")
@@ -739,7 +739,7 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  print "vrobot length:", len(vrobot)
+  print "vrobot[]:", vrobot[0].get_robot_a_pos(), vrobot[1].get_robot_a_pos()
 
   # keyboard input
   joystick = []
@@ -774,10 +774,9 @@ def main():
   landmark = [-560, 260, -520, 220]
   vWorld.add_obstacle(landmark)
 
-  for robot_i in range(gMaxRobotNum):
-    draw_world_thread = threading.Thread(target=draw_virtual_world, args=(vWorld, joystick[robot_i]))
-    draw_world_thread.daemon = True
-    draw_world_thread.start()
+  draw_world_thread = threading.Thread(target=draw_virtual_world, args=(vWorld,))
+  draw_world_thread.daemon = True
+  draw_world_thread.start()
 
   gui = VirtualWorldGui(vWorld, frame)
 

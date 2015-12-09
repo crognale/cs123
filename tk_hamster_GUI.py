@@ -87,6 +87,9 @@ class virtual_robot:
         self.x = x
         self.y = y
 
+    def get_robot_a_pos(self):
+        return [self.a, self.x, self.y]
+
     def set_robot_prox_dist(self, dist_l, dist_r):
         self.dist_l = dist_l
         self.dist_r = dist_r
@@ -144,7 +147,7 @@ class virtual_world:
 
         # draw each robot
         for vrobot in self.vrobotlist:
-            #print "a",vrobot.a
+            print "vrobot x and y",vrobot.x, vrobot.y
             a1 = vrobot.a + pi4
             a2 = vrobot.a + 3*pi4
             a3 = vrobot.a + 5*pi4
