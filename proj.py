@@ -119,32 +119,6 @@ class StateMachine:
             gEventQueue.put([toState, callback])
         time.sleep(0.1)
 
-def updateHamsterBox(left, right):
-  global gCanvas, gHamsterBox
-
-  average = (left + right) / 2.0
-  shade = int(255.0 * (average / 100.0))
-  rgb = "#%02x%02x%02x" % (shade, shade, shade)
-  gCanvas.itemconfig(gHamsterBox, fill=rgb)
-
-def updateProximityBars(left, right):
-  global gCanvas, gProximityBarLeft, gProximityBarRight
-  leftSize = (1 - (left / MAX_PROXIMITY)) * MAX_BAR_SIZE
-  rightSize = (1 - (right / MAX_PROXIMITY)) * MAX_BAR_SIZE
-
-  gCanvas.coords(gProximityBarLeft, BOX_X+BAR_WIDTH, BOX_Y,
-      BOX_X, BOX_Y - leftSize)
-  gCanvas.coords(gProximityBarRight, BOX_X+BOX_SIZE, BOX_Y,
-      BOX_X+BOX_SIZE-BAR_WIDTH, BOX_Y - rightSize)
-
-def createProximityBars():
-  global gCanvas, gProximityBarLeft, gProximityBarRight
-  gProximityBarLeft = gCanvas.create_rectangle(BOX_X+BAR_WIDTH, BOX_Y,
-      BOX_X, BOX_Y - MAX_BAR_SIZE, fill="white", width=BORDER_WIDTH)
-  gProximityBarRight = gCanvas.create_rectangle(BOX_X+BOX_SIZE, BOX_Y,
-      BOX_X+BOX_SIZE-BAR_WIDTH, BOX_Y - MAX_BAR_SIZE, fill="white",
-      width=BORDER_WIDTH)
-
 
 def done():
   global gBeepQueue, gWheelQueue
@@ -154,117 +128,6 @@ def done():
     gBeepQueue.put([finishSong[i], randint(1, 7), randint(1, 7), 0.2])
   gBeepQueue.put([0, 2,2, 0])
 
-def clearedTarget():
-  return gNumCleared >= CLEAR_TARGET
-
-def backUpDelay():
-  time.sleep(0.5)
-  return True
-
-def backUp():
-  global gBeepQueue, gWheelQueue
-  global gNumCleared
-  gWheelQueue[0].put([-100, -100, 0.5])
-
-def foundObjectClose():
-  for robot in gRobotList:
-    left = robot.get_proximity(0)
-    right = robot.get_proximity(1)
-    return (left > CLEARED_OBJ_THRESHOLD or right > CLEARED_OBJ_THRESHOLD)
-
-def checkSuccess():
-  gWheelQueue[0].put([0, 0, 0])
-
-def turnAroundFull():
-  global gBeepQueue, gWheelQueue
-  global gNumCleared
-  gNumCleared += 1
-  for x in range(gNumCleared):
-    gBeepQueue.put([70, 2, 2, 0.1])
-    gBeepQueue.put([0, 0, 0, 0.1])
-    duration = randint(5, 10) / 10.0
-  gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
-  time.sleep(duration + 0.5)
-
-def backUpTurnAroundEmpty():
-  global gBeepQueue, gWheelQueue
-  global gKillBehavior
-  for robot in gRobotList:
-    gWheelQueue[0].put([-100, -100, 0.5])
-
-    duration = randint(5, 10) / 10.0
-    gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
-    time.sleep(duration + 0.5)
-
-def turnAroundEmpty():
-  global gBeepQueue, gWheelQueue
-  global gKillBehavior
-  gBeepQueue.put([30, 4, 4, 0.5])
-  for robot in gRobotList:
-    duration = randint(5, 10) / 10.0
-    gWheelQueue[0].put([-WHEEL_SPEED ,WHEEL_SPEED, duration])
-    time.sleep(duration + 0.5)
-
-
-def hitBorder():
-  for robot in gRobotList:
-    left = robot.get_floor(0)
-    right = robot.get_floor(1)
-    return (left <= FLOOR_BLACK or right <= FLOOR_BLACK)
-
-
-
-def objectAligned():
-  for robot in gRobotList:
-    left = robot.get_proximity(0)
-    right = robot.get_proximity(1)
-    alignment = abs(left-right)
-    return alignment <= ALIGN_SKEW_THRESHOLD
-
-def pushObject():
-  global gBeepQueue, gWheelQueue
-  global gKillBehavior
-
-  while not gKillBehavior:
-    for robot in gRobotList:
-      left = robot.get_proximity(0)
-      right = robot.get_proximity(1)
-      correction = (right - left) / 2
-      gWheelQueue[0].put([WHEEL_SPEED + correction, WHEEL_SPEED - correction, 0.1])
-      print 'left proximity: ', left, ' right:', right
-      time.sleep(0.1)
-
-def foundObject():
-  for robot in gRobotList:
-    left = robot.get_proximity(0)
-    right = robot.get_proximity(1)
-    return (left > FOUND_OBJ_THRESHOLD or right > FOUND_OBJ_THRESHOLD)
-
-def alignObject():
-  global gBeepQueue, gWheelQueue
-  global gKillBehavior
-  gWheelQueue[0].put([0, 0, 0])
-  gBeepQueue.put([50, 3, 3, 0.2])
-
-  while not gKillBehavior:
-    for robot in gRobotList:
-      left = robot.get_proximity(0)
-      right = robot.get_proximity(1)
-      correction = abs((right - left) / 2)
-      if left > right:
-        gWheelQueue[0].put([10, 10 + correction, 0.1])
-      elif left < right:
-        gWheelQueue[0].put([10+correction, 10, 0.1])
-      time.sleep(0.1)
-
-
-def onWhite():
-  for robot in gRobotList:
-    left = robot.get_floor(0)
-    right = robot.get_floor(1)
-    if (left > FLOOR_WHITE and right > FLOOR_WHITE):
-      return True
-  return False
 
 def waitForWhite():
   global gBeepQueue, gWheelQueue
@@ -277,30 +140,12 @@ def waitForWhite():
     gBeepQueue.put([0, 0, 0, 0.1])
     time.sleep(0.2)
 
-def searchFwd():
-  global gBeepQueue, gWheelQueue
-  global gKillBehavior
-
-  while not gKillBehavior:
-    #fwdInterval = randint(10, 50) / 10.0
-    skew = randint(-WHEEL_SPEED/5, WHEEL_SPEED/5)
-    gWheelQueue[0].put([WHEEL_SPEED+skew, WHEEL_SPEED-skew, 0.1])
-    time.sleep(0.1)
-
 def fsm_init():
   global FSM
   FSM = StateMachine()
 
   State_Start = FSM.add_state("Start")
   State_WaitForWhite = FSM.add_state("WaitForWhite")
-  State_SearchFwd = FSM.add_state("SearchFwd")
-  State_BackUpTurnAroundEmpty = FSM.add_state("BackUpTurnAroundEmpty")
-  State_AlignObject = FSM.add_state("AlignObject")
-  State_PushObject = FSM.add_state("PushObject")
-  State_BackUp = FSM.add_state("BackUp")
-  State_CheckSuccess = FSM.add_state("CheckSuccess")
-  State_TurnAroundEmpty = FSM.add_state("TurnAroundEmpty")
-  State_TurnAroundFull = FSM.add_state("TurnAroundFull")
   State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
@@ -308,44 +153,6 @@ def fsm_init():
 
   State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
 
-  State_WaitForWhite.add_transition("SearchFwd", onWhite, searchFwd)
-
-  State_SearchFwd.add_transition("AlignObject", foundObject, alignObject)
-
-  State_SearchFwd.add_transition("BackUpTurnAroundEmpty", hitBorder, backUpTurnAroundEmpty)
-
-  State_BackUpTurnAroundEmpty.add_transition("SearchFwd", onWhite, searchFwd)
-
-  State_AlignObject.add_transition("PushObject", objectAligned, pushObject)
-
-  State_PushObject.add_transition("BackUp", hitBorder, backUp)
-
-  State_BackUp.add_transition("CheckSuccess", backUpDelay, checkSuccess)
-
-  State_CheckSuccess.add_transition("TurnAroundFull", foundObjectClose, turnAroundFull)
-  State_CheckSuccess.add_transition("TurnAroundEmpty", lambda: not foundObjectClose(), turnAroundEmpty)
-
-  State_TurnAroundEmpty.add_transition("SearchFwd", onWhite, searchFwd)
-
-  State_TurnAroundFull.add_transition("Done", clearedTarget, done)
-  State_TurnAroundFull.add_transition("SearchFwd", lambda: onWhite() and not clearedTarget(), searchFwd)
-
-
-def display_target():
-  global gCanvas
-  global gProximityBarLeft, gProximityBarRight
-  global gQuit
-
-  if (not gProximityBarLeft or not gProximityBarRight):
-    createProximityBars()
-
-  while not gQuit:
-    if (len(gRobotList) > 0):
-      for robot in gRobotList:
-        updateProximityBars(robot.get_proximity(0), robot.get_proximity(1))
-        updateHamsterBox(robot.get_floor(0), robot.get_floor(1))
-
-    time.sleep(0.1)
 
 def wheel_target(queue_ind):
   global gWheelQueue
@@ -397,12 +204,6 @@ def StartRace(event=None):
   global gNumCleared
 
   if (len(gRobotList) > 0):
-
-    # display thread
-    gNumCleared = 0
-    display_thread = threading.Thread(target=display_target)
-    display_thread.daemon = True
-    display_thread.start()
 
     fsm_init()
     monitor_thread = threading.Thread(target=FSM.monitor)
