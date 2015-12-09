@@ -102,11 +102,11 @@ class virtual_robot:
         self.goal_list.append(goal)
 
 class virtual_world:
-    def __init__(self, drawQueue, joystick=None, vrobotlist=None, canvas=None, canvas_width=0,
+    def __init__(self, drawQueue, joysticklist=None, vrobotlist=None, canvas=None, canvas_width=0,
                  canvas_height=0, mp=None, trace=False, prox_dots=False,
                  floor_dots=False):
         self.drawQueue = drawQueue
-        self.joystick = joystick
+        self.joysticklist = joysticklist if joysticklist is not None else [] # unused
         self.vrobotlist = vrobotlist if vrobotlist is not None else []
         self.canvas = canvas
         self.canvas_width = canvas_width
@@ -139,6 +139,8 @@ class virtual_world:
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
         pi4 = 3.1415 / 4 # quarter pi
+
+        print "draw_robot sees ", len(self.vrobotlist), "robots"
 
         # draw each robot
         for vrobot in self.vrobotlist:
