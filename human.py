@@ -7,6 +7,7 @@ import Queue
 from random import randint
 from tk_hamster_GUI import *
 import inspect #for debugging
+global joystick
 
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
@@ -31,6 +32,7 @@ gQuit = False
 gKillBehavior = False
 
 gCanvas = None
+gCanvas2 = None
 frame = None
 
 gProximityBarLeft = None
@@ -50,8 +52,11 @@ FLAG_LINETRACE = -1
 vWorld = None
 gTimeOfLastBoost = None
 gBoostButtonPressed = False
+gCollideButtonPressed = False
 BOOST_DURATION = 2
 BOOST_REFRACTORY = 5
+COLLIDE_DURATION = 1
+joystick = []
 
 class State:
     def __init__(self):
@@ -150,14 +155,30 @@ def WaitForWhite_to_Boost():
     return True
   return False
 
-def Boost_to_WaitForWhite():
-  time.sleep(BOOST_DURATION)
-  return True
-
 def boost():
   global gWheelQueue
   # 1 sec boost
   gWheelQueue[0].put([ 1, 7, FLAG_LINETRACE])
+
+def Boost_to_WaitForWhite():
+  time.sleep(BOOST_DURATION)
+  return True
+
+def WaitForWhite_to_Collide():
+  global gCollideButtonPressed, gTimeOfLastBoost
+  if gCollideButtonPressed == True:
+    gCollideButtonPressed = False
+    return True
+  return False
+
+def collide():
+  global gWheelQueue
+  # 1 sec boost
+  gWheelQueue[0].put([ 100, 100, 1])
+
+def Collide_to_WaitForWhite():
+  time.sleep(COLLIDE_DURATION)
+  return True
 
 def fsm_init():
   global FSM
@@ -166,6 +187,7 @@ def fsm_init():
   State_Start = FSM.add_state("Start")
   State_WaitForWhite = FSM.add_state("WaitForWhite") # line tracing
   State_Boost = FSM.add_state("Boost")
+  State_Collide = FSM.add_state("Collide")
   State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
@@ -174,11 +196,14 @@ def fsm_init():
   State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
   State_WaitForWhite.add_transition("Boost", WaitForWhite_to_Boost, boost)
   State_Boost.add_transition("WaitForWhite", Boost_to_WaitForWhite, waitForWhite)
+  State_WaitForWhite.add_transition("Collide", WaitForWhite_to_Collide, collide)
+  State_Collide.add_transition("WaitForWhite", Collide_to_WaitForWhite, waitForWhite)
 
 
 def wheel_target(queue_ind):
   global gWheelQueue
   global gQuit
+  global joystick
 
   #Queue element format: [Left wheel, Right wheel, duration/linetrace]
   #If duration == 0, holds indefinitely until next element dequeued
@@ -188,19 +213,28 @@ def wheel_target(queue_ind):
     #print 'movement: ', movement
     if gRobotList and len(gRobotList) > queue_ind:
       robot = gRobotList[queue_ind]
-
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
+
+      # joystick[0].vrobot.sl = 30
+      # joystick[0].vrobot.sr = 30
+
       if (movement[2] == FLAG_LINETRACE):
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
         robot.set_line_tracer_mode_speed(movement[0], movement[1])
+
+        if movement[1] == 3:
+          joystick[0].vrobot.sl = 21  # 230 mm in 10 s
+          joystick[0].vrobot.sr = 21
+        elif movement[1] == 7:
+          joystick[0].vrobot.sl = 45  # 100 mm in 2.1 s
+          joystick[0].vrobot.sr = 45
+
       elif movement[2] > 0:
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
-
-        # update virtual world's 2 virtual robots
 
 def beep_target():
   global gBeepQueue
@@ -250,7 +284,14 @@ def StartRaceButtonPressed(event=None):
 
 def BoostButtonPressed(event=None):
   global gBoostButtonPressed
-  gBoostButtonPressed = True
+  global FSM
+  if (FSM.currentState == "WaitForWhite"):
+    gBoostButtonPressed = True
+
+def CollideButtonPressed(event=None):
+  global gCollideButtonPressed
+  gCollideButtonPressed = True
+
 
 def draw_track():
   global gCanvas, frame
@@ -314,9 +355,13 @@ class VirtualWorldGui:
         startRaceButton.pack(side='left')
         startRaceButton.bind('<Button-1>', StartRaceButtonPressed)
 
-        boostButton = tk.Button(m,text="Boost!")
+        boostButton = tk.Button(m,text="Boost >>>")
         boostButton.pack(side='left')
         boostButton.bind('<Button-1>', BoostButtonPressed)
+
+        collideButton = tk.Button(m,text="Collide <!>")
+        collideButton.pack(side='left')
+        collideButton.bind('<Button-1>', CollideButtonPressed)
 
         exitButton = tk.Button(m,text="Exit")
         exitButton.pack(side='left')
@@ -371,7 +416,6 @@ class Joystick:
 
         self.vrobot.t = time.time()
         
-
         gCanvas.bind_all('<' + keyBindings[0] + '>', self.move_up)
         gCanvas.bind_all('<' + keyBindings[1] + '>', self.move_down)
         gCanvas.bind_all('<' + keyBindings[2] + '>', self.move_left)
@@ -379,7 +423,7 @@ class Joystick:
         gCanvas.bind_all('<' + keyBindings[4] + '>', self.stop_move)  
         gCanvas.pack()
 
-    # joysticking the robot 
+    # joysticking the robot
     def move_up(self, event=None):
         if self.gRobotList and len(self.gRobotList) > self.robot_i:
             robot = self.gRobotList[self.robot_i]
@@ -538,6 +582,7 @@ def main():
   global display_thread, monitor_thread, dispatch_thread
   global gBeepQueue, gWheelQueue, drawQueue
   global vWorld
+  global joystick
 
   comm = RobotComm(gMaxRobotNum)
   comm.start()
@@ -586,6 +631,9 @@ def main():
     update_vrobot_thread = threading.Thread(target=joystick[robot_i].update_virtual_robot)
     update_vrobot_thread.daemon = True
     update_vrobot_thread.start()
+
+  frame2 = tk.Tk()
+  gCanvas2 = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
 
 
   # virtual world UI

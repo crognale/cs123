@@ -33,6 +33,8 @@ class virtual_robot:
         self.y = 0 # y coordinate
         self.a = 0 # angle of the robot, 0 when aligned with verticle axis
                    #--- a is in radians - not degrees
+        self.track = "outer" # starting track
+
         self.dist_l = False
         self.dist_r = False #distance
         self.floor_l = False 
@@ -51,6 +53,7 @@ class virtual_robot:
         self.x = 0 # x coordinate
         self.y = 0 # y coordinate
         self.a = 0 # angle of the robot, 0 when aligned with verticle axis
+        self.track = "outer"
         self.dist_l = False
         self.dist_r = False #
         self.floor_l = False 
@@ -166,6 +169,42 @@ class virtual_world:
             y2 = canvas_height - 3 * math.cos(a2) - vrobot.y
             y3 = canvas_height - 3 * math.cos(a3) - vrobot.y
             self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
+
+        track = vrobot.track
+        print "vrobot.a", vrobot.a
+        if track == "outer" and vrobot.a == pi4 * 2 and vrobot.x >= 40:
+            vrobot.a = pi4 * 3
+        if track == "outer" and vrobot.a == pi4 * 3 and vrobot.y <= 200:
+            vrobot.a = pi4 * 4
+        if track == "outer" and vrobot.a == pi4 * 4 and vrobot.y <= -80:
+            vrobot.a = pi4 * 5
+        if track == "outer" and vrobot.a == pi4 * 5 and vrobot.y <= -220:
+            vrobot.a = pi4 * 6
+        if track == "outer" and vrobot.a == pi4 * 6 and vrobot.x <= -520:
+            vrobot.a = pi4 * 7
+        if track == "outer" and vrobot.a == pi4 * 7 and vrobot.y >= -80:
+            vrobot.a = 0
+        if track == "outer" and vrobot.a == 0 and vrobot.y >= 200:
+            vrobot.a = pi4
+        if track == "outer" and vrobot.a == pi4 and vrobot.y >= 340:
+            vrobot.a = pi4 * 2
+
+        if track == "inner" and vrobot.a == pi4 * 2 and vrobot.x >= 0:
+            vrobot.a = pi4 * 3
+        if track == "inner" and vrobot.a == pi4 * 3 and vrobot.y <= 160:
+            vrobot.a = pi4 * 4
+        if track == "inner" and vrobot.a == pi4 * 4 and vrobot.y <= -40:
+            vrobot.a = pi4 * 5
+        if track == "inner" and vrobot.a == pi4 * 5 and vrobot.y <= -140:
+            vrobot.a = pi4 * 6
+        if track == "inner" and vrobot.a == pi4 * 6 and vrobot.x <= -480:
+            vrobot.a = pi4 * 7
+        if track == "inner" and vrobot.a == pi4 * 7 and vrobot.y >= -40:
+            vrobot.a = 0
+        if track == "inner" and vrobot.a == 0 and vrobot.y >= 160:
+            vrobot.a = pi4
+        if track == "inner" and vrobot.a == pi4 and vrobot.y >= 260:
+            vrobot.a = pi4 * 2
 
     def draw_prox(self, side):
         canvas_width = self.canvas_width
