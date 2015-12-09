@@ -94,12 +94,12 @@ class virtual_robot:
         self.goal_list.append(goal)
 
 class virtual_world:
-    def __init__(self, drawQueue, joysticklist=None, vrobotlist=None, canvas=None, canvas_width=0,
+    def __init__(self, drawQueue, joystick=None, vrobot=None, canvas=None, canvas_width=0,
                  canvas_height=0, mp=None, trace=False, prox_dots=False,
                  floor_dots=False):
         self.drawQueue = drawQueue
-        self.joysticklist = joysticklist if joysticklist is not None else [] # unused
-        self.vrobotlist = vrobotlist if vrobotlist is not None else []
+        self.joystick = joystick
+        self.vrobot = vrobot
         self.canvas = canvas
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
@@ -132,141 +132,133 @@ class virtual_world:
         canvas_height = self.canvas_height
         pi4 = 3.1415 / 4 # quarter pi
 
-        print "draw_robot sees ", len(self.vrobotlist), "robots"
+        vrobot = self.vrobot
+        #print "vrobot x and y",vrobot.x, vrobot.y
+        a1 = vrobot.a + pi4
+        a2 = vrobot.a + 3*pi4
+        a3 = vrobot.a + 5*pi4
+        a4 = vrobot.a + 7*pi4
 
-        # draw each robot
-        for vrobot in self.vrobotlist:
-            #print "vrobot x and y",vrobot.x, vrobot.y
-            a1 = vrobot.a + pi4
-            a2 = vrobot.a + 3*pi4
-            a3 = vrobot.a + 5*pi4
-            a4 = vrobot.a + 7*pi4
+        x1 = canvas_width + vrobot.l * math.sin(a1) + vrobot.x
+        x2 = canvas_width + vrobot.l * math.sin(a2) + vrobot.x
+        x3 = canvas_width + vrobot.l * math.sin(a3) + vrobot.x        
+        x4 = canvas_width + vrobot.l * math.sin(a4) + vrobot.x
 
-            x1 = canvas_width + vrobot.l * math.sin(a1) + vrobot.x
-            x2 = canvas_width + vrobot.l * math.sin(a2) + vrobot.x
-            x3 = canvas_width + vrobot.l * math.sin(a3) + vrobot.x        
-            x4 = canvas_width + vrobot.l * math.sin(a4) + vrobot.x
+        y1 = canvas_height - vrobot.l * math.cos(a1) - vrobot.y
+        y2 = canvas_height - vrobot.l * math.cos(a2) - vrobot.y
+        y3 = canvas_height - vrobot.l * math.cos(a3) - vrobot.y
+        y4 = canvas_height - vrobot.l * math.cos(a4) - vrobot.y
 
-            y1 = canvas_height - vrobot.l * math.cos(a1) - vrobot.y
-            y2 = canvas_height - vrobot.l * math.cos(a2) - vrobot.y
-            y3 = canvas_height - vrobot.l * math.cos(a3) - vrobot.y
-            y4 = canvas_height - vrobot.l * math.cos(a4) - vrobot.y
+        points = (x1,y1,x2,y2,x3,y3,x4,y4)
+        poly_id = vrobot.poly_id
 
-            points = (x1,y1,x2,y2,x3,y3,x4,y4)
-            poly_id = vrobot.poly_id
+        self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
 
-            print "poly_id", poly_id, 'points',points
-            #ids = self.canvas.find_withtag(tk.ALL)
-            #print ids
-
-            self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
-
-            if (self.trace):
-                pi3 = 3.1415/3
-                a1 = vrobot.a
-                a2 = a1 + 2*pi3
-                a3 = a1 + 4*pi3
-                x1 = canvas_width + 3 * math.sin(a1) + vrobot.x
-                x2 = canvas_width + 3 * math.sin(a2) + vrobot.x
-                x3 = canvas_width + 3 * math.sin(a3) + vrobot.x 
-                y1 = canvas_height - 3 * math.cos(a1) - vrobot.y
-                y2 = canvas_height - 3 * math.cos(a2) - vrobot.y
-                y3 = canvas_height - 3 * math.cos(a3) - vrobot.y
-                self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
+        if (self.trace):
+            pi3 = 3.1415/3
+            a1 = vrobot.a
+            a2 = a1 + 2*pi3
+            a3 = a1 + 4*pi3
+            x1 = canvas_width + 3 * math.sin(a1) + vrobot.x
+            x2 = canvas_width + 3 * math.sin(a2) + vrobot.x
+            x3 = canvas_width + 3 * math.sin(a3) + vrobot.x 
+            y1 = canvas_height - 3 * math.cos(a1) - vrobot.y
+            y2 = canvas_height - 3 * math.cos(a2) - vrobot.y
+            y3 = canvas_height - 3 * math.cos(a3) - vrobot.y
+            self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
 
     def draw_prox(self, side):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
 
-        for vrobot in self.vrobotlist:
-            if (side == "left"):
-                a_e = vrobot.a - 3.1415/5 #emitter location
-                prox_dis = vrobot.dist_l
-                prox_l_id = vrobot.prox_l_id
-            else:
-                a_e = vrobot.a + 3.1415/5 #emitter location
-                prox_dis = vrobot.dist_r
-                prox_l_id = vrobot.prox_r_id
+        vrobot = self.vrobot
+        if (side == "left"):
+            a_e = vrobot.a - 3.1415/5 #emitter location
+            prox_dis = vrobot.dist_l
+            prox_l_id = vrobot.prox_l_id
+        else:
+            a_e = vrobot.a + 3.1415/5 #emitter location
+            prox_dis = vrobot.dist_r
+            prox_l_id = vrobot.prox_r_id
 
             #print "prox_l_id", prox_l_id
 
-            if (prox_dis):
-                x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x #emiter pos of left sensor
-                y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y #emiter pos of right sensor
-                x_p = prox_dis * math.sin(vrobot.a) + x_e
-                y_p = prox_dis * math.cos(vrobot.a) + y_e
-                if (self.prox_dots):
-                    self.drawQueue.put(lambda: self.canvas.create_oval(canvas_width+x_p-1, canvas_height-y_p-1, canvas_width+x_p+1, canvas_height-y_p+1, outline='red'))
-                points = (canvas_width+x_e, canvas_height-y_e, canvas_width+x_p, canvas_height-y_p)
-                self.drawQueue.put(lambda: self.canvas.coords(prox_l_id, points))
-            else:
-                points = (0,0,0,0)
-                self.drawQueue.put(lambda: self.canvas.coords(prox_l_id, points))
+        if (prox_dis):
+            x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x #emiter pos of left sensor
+            y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y #emiter pos of right sensor
+            x_p = prox_dis * math.sin(vrobot.a) + x_e
+            y_p = prox_dis * math.cos(vrobot.a) + y_e
+            if (self.prox_dots):
+                self.drawQueue.put(lambda: self.canvas.create_oval(canvas_width+x_p-1, canvas_height-y_p-1, canvas_width+x_p+1, canvas_height-y_p+1, outline='red'))
+            points = (canvas_width+x_e, canvas_height-y_e, canvas_width+x_p, canvas_height-y_p)
+            self.drawQueue.put(lambda: self.canvas.coords(prox_l_id, points))
+        else:
+            points = (0,0,0,0)
+            self.drawQueue.put(lambda: self.canvas.coords(prox_l_id, points))
 
     def store_prox(self):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
-
-        for vrobot in self.vrobotlist:
 
             #--- store localization position in list ----#
             #--------------------------------------------#
             # don't need to change direction because prox_dis accounts for angle robot is facing in
             # want to append only if there's a signal on both sensors (?) otherwise too many irrelevant points stored
 
-            if vrobot.dist_l and vrobot.dist_r: #both sensors see wall  
+        vrobot = self.vrobot
+        if vrobot.dist_l and vrobot.dist_r: #both sensors see wall  
 
-                # left sensor
-                a_e = vrobot.a - 3.1415/5 #emitter location
-                prox_dis = vrobot.dist_l
-                #prox_l_id = vrobot.prox_l_id
-                x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x # x coord of left sensor
-                y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y # y coord of left sensor
-                x_p = prox_dis * math.sin(vrobot.a) + x_e
-                y_p = prox_dis * math.cos(vrobot.a) + y_e
-                vrobot.location.append( (x_p, y_p) )
-                #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a, 
-                #print "store ", x_p, y_p
+            # left sensor
+            a_e = vrobot.a - 3.1415/5 #emitter location
+            prox_dis = vrobot.dist_l
+            #prox_l_id = vrobot.prox_l_id
+            x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x # x coord of left sensor
+            y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y # y coord of left sensor
+            x_p = prox_dis * math.sin(vrobot.a) + x_e
+            y_p = prox_dis * math.cos(vrobot.a) + y_e
+            vrobot.location.append( (x_p, y_p) )
+            #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a, 
+            #print "store ", x_p, y_p
 
-                # right sensor
-                a_e = vrobot.a + 3.1415/5 #emitter location
-                prox_dis = vrobot.dist_r
-                #prox_r_id = vrobot.prox_r_id
-                x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x # x coord of right sensor
-                y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y # y coord of right sensor
-                x_p = prox_dis * math.sin(vrobot.a) + x_e
-                y_p = prox_dis * math.cos(vrobot.a) + y_e
-                vrobot.location.append( (x_p, y_p) )
-                #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a
-                #print "store ", x_p, y_p
+            # right sensor
+            a_e = vrobot.a + 3.1415/5 #emitter location
+            prox_dis = vrobot.dist_r
+            #prox_r_id = vrobot.prox_r_id
+            x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x # x coord of right sensor
+            y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y # y coord of right sensor
+            x_p = prox_dis * math.sin(vrobot.a) + x_e
+            y_p = prox_dis * math.cos(vrobot.a) + y_e
+            vrobot.location.append( (x_p, y_p) )
+            #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a
+            #print "store ", x_p, y_p
 
     def draw_floor(self, side):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
 
-        for vrobot in self.vrobotlist:
+        vrobot = self.vrobot
 
-            if (side == "left"):
-                border = vrobot.floor_l
-                floor_id = vrobot.floor_l_id
-                a = vrobot.a - 3.1415/7 #rough position of the left floor sensor
-            else:
-                border = vrobot.floor_r
-                floor_id = vrobot.floor_r_id
-                a = vrobot.a + 3.1415/7 #rough position of the left floor sensor    
+        if (side == "left"):
+            border = vrobot.floor_l
+            floor_id = vrobot.floor_l_id
+            a = vrobot.a - 3.1415/7 #rough position of the left floor sensor
+        else:
+            border = vrobot.floor_r
+            floor_id = vrobot.floor_r_id
+            a = vrobot.a + 3.1415/7 #rough position of the left floor sensor    
 
-            #print "floor_id", floor_id
+        #print "floor_id", floor_id
 
-            x_f = (vrobot.l - 12) * math.sin(a) + vrobot.x
-            y_f = (vrobot.l - 12) * math.cos(a) + vrobot.y
+        x_f = (vrobot.l - 12) * math.sin(a) + vrobot.x
+        y_f = (vrobot.l - 12) * math.cos(a) + vrobot.y
 
-            #print "x_f, y_f:", x_f, y_f
-            points = (canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2)
-            self.drawQueue.put(lambda: self.canvas.coords(floor_id, points))
-            if (border): 
-                self.drawQueue.put(lambda: self.canvas.itemconfig(floor_id, outline = "black", fill="black"))
-                if (self.floor_dots):
-                    self.drawQueue.put(lambda: self.canvas.create_oval(canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2, fill='black'))
-            else:
-                self.drawQueue.put(lambda: self.canvas.itemconfig(floor_id, outline = "white", fill="white"))
+        #print "x_f, y_f:", x_f, y_f
+        points = (canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2)
+        self.drawQueue.put(lambda: self.canvas.coords(floor_id, points))
+        if (border): 
+            self.drawQueue.put(lambda: self.canvas.itemconfig(floor_id, outline = "black", fill="black"))
+            if (self.floor_dots):
+                self.drawQueue.put(lambda: self.canvas.create_oval(canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2, fill='black'))
+        else:
+            self.drawQueue.put(lambda: self.canvas.itemconfig(floor_id, outline = "white", fill="white"))
 

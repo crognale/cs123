@@ -39,8 +39,7 @@ gHamsterBox = None
 
 gEventQueue = Queue.Queue()
 gBeepQueue = Queue.Queue()
-#g___Queue[0] is human, [1] is AI
-gWheelQueue = [Queue.Queue(), Queue.Queue()]
+gWheelQueue = Queue.Queue()
 
 FSM = None
 
@@ -130,8 +129,7 @@ def done():
 def waitForWhite():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  gWheelQueue[0].put([ 1, 5, FLAG_LINETRACE])
-  gWheelQueue[1].put([ 1, 5, FLAG_LINETRACE])
+  gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
@@ -152,19 +150,17 @@ def fsm_init():
   State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
 
 
-def wheel_target(queue_ind):
+def wheel_target():
   global gWheelQueue
   global gQuit
 
   #Queue element format: [Left wheel, Right wheel, duration/linetrace]
   #If duration == 0, holds indefinitely until next element dequeued
   while not gQuit:
-    movement = gWheelQueue[queue_ind].get(True)
+    movement = gWheelQueue.get(True)
     #print 'queue_ind: ', queue_ind, 'movement: ', movement
     #print 'movement: ', movement
-    if gRobotList and len(gRobotList) > queue_ind:
-      robot = gRobotList[queue_ind]
-
+    for robot in gRobotList:
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
       if (movement[2] == FLAG_LINETRACE):
@@ -175,7 +171,6 @@ def wheel_target(queue_ind):
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
-
         # update virtual world's 2 virtual robots
 
 def beep_target():
@@ -216,11 +211,9 @@ def StartRace(event=None):
     beep_thread.daemon = True
     beep_thread.start()
 
-    wheel_threads = []
-    for i in [0, 1]:
-      wheel_threads.append(threading.Thread(target = wheel_target, args=(i,)))
-      wheel_threads[i].daemon = True
-      wheel_threads[i].start()
+    wheel_thread = threading.Thread(target = wheel_target)
+    wheel_thread.daemon = True
+    wheel_thread.start()
 
 
 def startrace(self):
@@ -338,154 +331,144 @@ class VirtualWorldGui:
             drawCommand()
         
 class Joystick:
-    def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x']):
+  def __init__(self, comm, m, gCanvas, vrobot):
         self.gRobotList = comm.robotList
         self.m = m
         self.vrobot = vrobot
-        self.robot_i = robot_i
 
         self.vrobot.t = time.time()
         
 
-        gCanvas.bind_all('<' + keyBindings[0] + '>', self.move_up)
-        gCanvas.bind_all('<' + keyBindings[1] + '>', self.move_down)
-        gCanvas.bind_all('<' + keyBindings[2] + '>', self.move_left)
-        gCanvas.bind_all('<' + keyBindings[3] + '>', self.move_right)
-        gCanvas.bind_all('<' + keyBindings[4] + '>', self.stop_move)  
+        gCanvas.bind_all('<' + 'w' + '>', self.move_up)
+        gCanvas.bind_all('<' + 'a' + '>', self.move_down)
+        gCanvas.bind_all('<' + 's' + '>', self.move_left)
+        gCanvas.bind_all('<' + 'd' + '>', self.move_right)
+        gCanvas.bind_all('<' + 'x' + '>', self.stop_move)  
         gCanvas.pack()
 
     # joysticking the robot 
-    def move_up(self, event=None):
-        if self.gRobotList and len(self.gRobotList) > self.robot_i:
-            robot = self.gRobotList[self.robot_i]
-            self.vrobot.sl = 30
-            self.vrobot.sr = 30   
-            robot.set_wheel(0,self.vrobot.sl)
-            robot.set_wheel(1,self.vrobot.sr)
-            self.vrobot.t = time.time()
+  def move_up(self, event=None):
+    for robot in gRobotList:
+      self.vrobot.sl = 30
+      self.vrobot.sr = 30   
+      robot.set_wheel(0,self.vrobot.sl)
+      robot.set_wheel(1,self.vrobot.sr)
+      self.vrobot.t = time.time()
 
-    def move_down(self, event=None):
-        if self.gRobotList and len(self.gRobotList) > self.robot_i:
-            robot = self.gRobotList[self.robot_i]
-            self.vrobot.sl = -30
-            self.vrobot.sr = -30   
-            robot.set_wheel(0,self.vrobot.sl)
-            robot.set_wheel(1,self.vrobot.sr)
-            self.vrobot.t = time.time()
+  def move_down(self, event=None):
+    for robot in gRobotlist:
+      self.vrobot.sl = -30
+      self.vrobot.sr = -30   
+      robot.set_wheel(0,self.vrobot.sl)
+      robot.set_wheel(1,self.vrobot.sr)
+      self.vrobot.t = time.time()
 
-    def move_left(self, event=None):
-        if self.gRobotList and len(self.gRobotList) > self.robot_i:
-            robot = self.gRobotList[self.robot_i]
-            self.vrobot.sl = -15
-            self.vrobot.sr = 15   
-            robot.set_wheel(0,self.vrobot.sl)
-            robot.set_wheel(1,self.vrobot.sr)
-            self.vrobot.t = time.time()       
+  def move_left(self, event=None):
+    for robot in gRobotList:
+      self.vrobot.sl = -15
+      self.vrobot.sr = 15   
+      robot.set_wheel(0,self.vrobot.sl)
+      robot.set_wheel(1,self.vrobot.sr)
+      self.vrobot.t = time.time()       
 
-    def move_right(self, event=None):
-        if self.gRobotList and len(self.gRobotList) > self.robot_i:
-            robot = self.gRobotList[self.robot_i]
-            self.vrobot.sl = 15
-            self.vrobot.sr = -15  
-            robot.set_wheel(0,self.vrobot.sl)
-            robot.set_wheel(1,self.vrobot.sr) 
-            self.vrobot.t = time.time()      
+  def move_right(self, event=None):
+    for robot in gRobotList:
+          self.vrobot.sl = 15
+          self.vrobot.sr = -15  
+          robot.set_wheel(0,self.vrobot.sl)
+          robot.set_wheel(1,self.vrobot.sr) 
+          self.vrobot.t = time.time()      
 
-    def stop_move(self, event=None):
-        if self.gRobotList and len(self.gRobotList) > self.robot_i:
-            robot = self.gRobotList[self.robot_i]
-            robot = self.gRobotList[self.robot_i]
-            self.vrobot.sl = 0
-            self.vrobot.sr = 0
-            robot.set_wheel(0,self.vrobot.sl)
-            robot.set_wheel(1,self.vrobot.sr)
-            self.vrobot.t = time.time()
+  def stop_move(self, event=None):
+    for robot in gRobotList:
+          self.vrobot.sl = 0
+          self.vrobot.sr = 0
+          robot.set_wheel(0,self.vrobot.sl)
+          robot.set_wheel(1,self.vrobot.sr)
+          self.vrobot.t = time.time()
 
-    def update_virtual_robot(self):
+  def update_virtual_robot(self):
 
-        #---- model the robot
-        #---- tests:
-        # Location of test: Gates B21 paper-based grid
-        # time = 5 second
-        # distance robot moved = 160 mm
-        # speed = 160 mm / 5 s = 32 mm / s   (v robot speed = 30 mm / s)
-        # d_factor = distance / time / virtual speed = 1.0667
-        # d_factor = 32 mm/s / 30 mm/s = 1.0667
-        # 
+      #---- model the robot
+      #---- tests:
+      # Location of test: Gates B21 paper-based grid
+      # time = 5 second
+      # distance robot moved = 160 mm
+      # speed = 160 mm / 5 s = 32 mm / s   (v robot speed = 30 mm / s)
+      # d_factor = distance / time / virtual speed = 1.0667
+      # d_factor = 32 mm/s / 30 mm/s = 1.0667
+      # 
 
-        #---- a_factor_cw
-        #---- tests:
-        # Location of test: Gates B21 paper-based grid
-        # time = 7 seconds
-        # angle robot moved = 2*pi radians
-        # angular speed = 15 (wheel speed) / (2*pi rad / 7 sec) = 16.71
+      #---- a_factor_cw
+      #---- tests:
+      # Location of test: Gates B21 paper-based grid
+      # time = 7 seconds
+      # angle robot moved = 2*pi radians
+      # angular speed = 15 (wheel speed) / (2*pi rad / 7 sec) = 16.71
 
-        #---- a_factor2_ccw
-        #---- tests:
-        # Location of test: Gates B21 paper-based grid
-        # time = 7.8 seconds
-        # angle robot moved = 2*pi radians
-        # angular speed = 15 (wheel speed) / (2*pi rad / 7.8 sec) = 18.6
+      #---- a_factor2_ccw
+      #---- tests:
+      # Location of test: Gates B21 paper-based grid
+      # time = 7.8 seconds
+      # angle robot moved = 2*pi radians
+      # angular speed = 15 (wheel speed) / (2*pi rad / 7.8 sec) = 18.6
 
-        noise_prox = 25 # noisy level for proximity
-        noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
-        p_factor = 1.6 #proximity conversion - assuming linear #orig = 1.4
-        d_factor = 1.0667 #travel distance conversion  -  make bigger if fake robot is slower   # have robot move for 10 seconds. record distance.
-        # d_factor = speed of the robot
-        a_factor_cw = 16.71 # rotation conversion, assuming linear
-        a_factor2_ccw = 16
+      noise_prox = 25 # noisy level for proximity
+      noise_floor = 20 #floor ambient color - if floor is darker, set higher noise
+      p_factor = 1.6 #proximity conversion - assuming linear #orig = 1.4
+      d_factor = 1.0667 #travel distance conversion  -  make bigger if fake robot is slower   # have robot move for 10 seconds. record distance.
+      # d_factor = speed of the robot
+      a_factor_cw = 16.71 # rotation conversion, assuming linear
+      a_factor2_ccw = 16
 
-        while (not self.gRobotList) or (len(self.goRobotList) <= robot_i):
-            print "waiting for robot to connect"
-            time.sleep(0.1)
+      while not self.gRobotList:
+          print "waiting for robot to connect"
+          time.sleep(0.1)
 
-        print "connected to robot"
+      print "connected to robot"
 
-        while not gQuit:
-            if self.gRobotList and len(self.gRobotList) > self.robot_i:
-                print 'update virtual robot for ', self.robot_i
-                robot = self.gRobotList[self.robot_i]
+      while not gQuit:
+        for robot in gRobotList:
+              t = time.time()
+              del_t = t - self.vrobot.t
+              self.vrobot.t = t # update the tick
+              if self.vrobot.sl == self.vrobot.sr: #---- speed of left wheel = speed of right wheel
+                  #--- update x,y position
+                  self.vrobot.x = self.vrobot.x + self.vrobot.sl * del_t * math.sin(self.vrobot.a) * d_factor
+                  self.vrobot.y = self.vrobot.y + self.vrobot.sl * del_t * math.cos(self.vrobot.a) * d_factor
+              if self.vrobot.sl == -self.vrobot.sr:
+                  #--- update angle
+                  #--- if sr > 0 and sl < 0, rotates clockwise
+                  #--- if sr < 0 and sl > 0, rotates counter-clockwise
+                  if (self.vrobot.sl > 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor_cw 
+                  if (self.vrobot.sl < 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor2_ccw
 
-                t = time.time()
-                del_t = t - self.vrobot.t
-                self.vrobot.t = t # update the tick
-                if self.vrobot.sl == self.vrobot.sr: #---- speed of left wheel = speed of right wheel
-                    #--- update x,y position
-                    self.vrobot.x = self.vrobot.x + self.vrobot.sl * del_t * math.sin(self.vrobot.a) * d_factor
-                    self.vrobot.y = self.vrobot.y + self.vrobot.sl * del_t * math.cos(self.vrobot.a) * d_factor
-                if self.vrobot.sl == -self.vrobot.sr:
-                    #--- update angle
-                    #--- if sr > 0 and sl < 0, rotates clockwise
-                    #--- if sr < 0 and sl > 0, rotates counter-clockwise
-                    if (self.vrobot.sl > 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor_cw 
-                    if (self.vrobot.sl < 0): self.vrobot.a = self.vrobot.a + (self.vrobot.sl * del_t)/a_factor2_ccw
+              #---update position if line tracer is being used---#
+              
+              #---update sensors and get dist_l and dist_r
+              prox_l = robot.get_proximity(0)
+              prox_r = robot.get_proximity(1)
+              if (prox_l > noise_prox):
+                  self.vrobot.dist_l = (100 - prox_l)*p_factor
+              else:
+                  self.vrobot.dist_l = False
+              if (prox_r > noise_prox):
+                  self.vrobot.dist_r = (100 - prox_r)*p_factor
+              else:
+                  self.vrobot.dist_r = False
+              
+              floor_l = robot.get_floor(0)
+              floor_r = robot.get_floor(1)
+              if (floor_l < noise_floor):
+                  self.vrobot.floor_l = floor_l
+              else:
+                  self.vrobot.floor_l = False
+              if (floor_r < noise_floor):
+                  self.vrobot.floor_r = floor_r
+              else:
+                  self.vrobot.floor_r = False
 
-                #---update position if line tracer is being used---#
-                
-                #---update sensors and get dist_l and dist_r
-                prox_l = robot.get_proximity(0)
-                prox_r = robot.get_proximity(1)
-                if (prox_l > noise_prox):
-                    self.vrobot.dist_l = (100 - prox_l)*p_factor
-                else:
-                    self.vrobot.dist_l = False
-                if (prox_r > noise_prox):
-                    self.vrobot.dist_r = (100 - prox_r)*p_factor
-                else:
-                    self.vrobot.dist_r = False
-                
-                floor_l = robot.get_floor(0)
-                floor_r = robot.get_floor(1)
-                if (floor_l < noise_floor):
-                    self.vrobot.floor_l = floor_l
-                else:
-                    self.vrobot.floor_l = False
-                if (floor_r < noise_floor):
-                    self.vrobot.floor_r = floor_r
-                else:
-                    self.vrobot.floor_r = False
-
-            time.sleep(0.1)
+              time.sleep(0.1)
 
 
 def stopProg(event=None):
@@ -532,35 +515,26 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  # create 2 virtual robot data objects
-  vrobot = []
-  joystick = []
-  keyBindings = []
-  for robot_i in range(gMaxRobotNum):
-    vrobot.append ( virtual_robot() )
-    pi4 = 3.1415 / 4
+  vrobot =  virtual_robot()
+  pi4 = 3.1415 / 4
 
-    # robot starting positions
-    vrobot[robot_i].set_robot_a_pos(pi4*2, -520 + robot_i * 40, +340 - robot_i * 80)
+  # robot starting positions
+  vrobot.set_robot_a_pos(pi4*2, -520, 340)
 
-    # keyboard input
-    if robot_i == 0:
-      keyBindings = ['w','s','a','d','x']
-    elif robot_i == 1:
-      keyBindings = ['i','k','j','l',',']
-    joystick.append( Joystick(comm, frame, gCanvas, vrobot[robot_i], robot_i, keyBindings) )
-    poly_points = [0,0,0,0,0,0,0,0]
-    joystick[robot_i].vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='blue') #robot
-    joystick[robot_i].vrobot.prox_l_id = gCanvas.create_line(0,0,0,0, fill="red") #prox sensors  ---- here
-    joystick[robot_i].vrobot.prox_r_id = gCanvas.create_line(0,0,0,0, fill="red")
-    joystick[robot_i].vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
-    joystick[robot_i].vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
+  # keyboard input
+  joystick =  Joystick(comm, frame, gCanvas, vrobot)
+  poly_points = [0,0,0,0,0,0,0,0]
+  joystick.vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='blue') #robot
+  joystick.vrobot.prox_l_id = gCanvas.create_line(0,0,0,0, fill="red") #prox sensors  ---- here
+  joystick.vrobot.prox_r_id = gCanvas.create_line(0,0,0,0, fill="red")
+  joystick.vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
+  joystick.vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
 
-    time.sleep(1)
+  time.sleep(1)
 
-    update_vrobot_thread = threading.Thread(target=joystick[robot_i].update_virtual_robot)
-    update_vrobot_thread.daemon = True
-    update_vrobot_thread.start()
+  update_vrobot_thread = threading.Thread(target=joystick.update_virtual_robot)
+  update_vrobot_thread.daemon = True
+  update_vrobot_thread.start()
 
 
   # virtual world UI
