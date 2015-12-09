@@ -50,6 +50,7 @@ FLAG_LINETRACE = -1
 vWorld = None
 gBoostTime = None
 gBoostButtonPressed = False
+BOOST_DURATION = 2
 
 class State:
     def __init__(self):
@@ -147,6 +148,10 @@ def WaitForWhite_to_Boost():
     return True
   return False
 
+def Boost_to_WaitForWhite():
+  time.sleep(BOOST_DURATION)
+  return True
+
 def boost():
   global gWheelQueue
   # 1 sec boost
@@ -166,7 +171,7 @@ def fsm_init():
 
   State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
   State_WaitForWhite.add_transition("Boost", WaitForWhite_to_Boost, boost)
-  State_Boost.add_transition("WaitForWhite", lambda: True, waitForWhite)
+  State_Boost.add_transition("WaitForWhite", Boost_to_WaitForWhite, waitForWhite)
 
 
 def wheel_target(queue_ind):
@@ -581,7 +586,7 @@ def main():
 
   # virtual world UI
   drawQueue = Queue.Queue(0)
-  vWorld = virtual_world(drawQueue, joystick, vrobot, gCanvas, canvas_width, canvas_height)
+  vWorld = virtual_world(drawQueue, joystick[0], vrobot[0], gCanvas, canvas_width, canvas_height)
   landmark = [-500, 220, -460, 180]
   vWorld.add_obstacle(landmark)
 
