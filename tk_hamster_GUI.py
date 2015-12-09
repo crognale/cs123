@@ -143,11 +143,11 @@ class virtual_world:
         canvas_height = self.canvas_height
         pi4 = 3.1415 / 4 # quarter pi
 
-        print "draw_robot sees ", len(self.vrobotlist), "robots"
+        #print "draw_robot sees ", len(self.vrobotlist), "robots"
 
         # draw each robot
         for vrobot in self.vrobotlist:
-            print "vrobot x and y",vrobot.x, vrobot.y
+            #print "vrobot x and y",vrobot.x, vrobot.y
             a1 = vrobot.a + pi4
             a2 = vrobot.a + 3*pi4
             a3 = vrobot.a + 5*pi4
@@ -166,7 +166,7 @@ class virtual_world:
             points = (x1,y1,x2,y2,x3,y3,x4,y4)
             poly_id = vrobot.poly_id
 
-            print "poly_id", poly_id
+            #print "poly_id", poly_id
 
             self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
 
@@ -197,7 +197,7 @@ class virtual_world:
                 prox_dis = vrobot.dist_r
                 prox_l_id = vrobot.prox_r_id
 
-            print "prox_l_id", prox_l_id
+            #print "prox_l_id", prox_l_id
 
             if (prox_dis):
                 x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x #emiter pos of left sensor
@@ -264,12 +264,12 @@ class virtual_world:
                 floor_id = vrobot.floor_r_id
                 a = vrobot.a + 3.1415/7 #rough position of the left floor sensor    
 
-            print "floor_id", floor_id
+            #print "floor_id", floor_id
 
             x_f = (vrobot.l - 12) * math.sin(a) + vrobot.x
             y_f = (vrobot.l - 12) * math.cos(a) + vrobot.y
 
-            print "x_f, y_f:", x_f, y_f
+            #print "x_f, y_f:", x_f, y_f
             points = (canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2)
             self.drawQueue.put(lambda: self.canvas.coords(floor_id, points))
             if (border): 

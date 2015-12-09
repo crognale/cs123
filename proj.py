@@ -162,8 +162,8 @@ def wheel_target(queue_ind):
   #If duration == 0, holds indefinitely until next element dequeued
   while not gQuit:
     movement = gWheelQueue[queue_ind].get(True)
-    print 'queue_ind: ', queue_ind, 'movement: ', movement
-    print 'movement: ', movement
+    #print 'queue_ind: ', queue_ind, 'movement: ', movement
+    #print 'movement: ', movement
     if gRobotList and len(gRobotList) > queue_ind:
       robot = gRobotList[queue_ind]
 
@@ -312,13 +312,13 @@ class VirtualWorldGui:
 
     def updateCanvas(self, drawQueue):
         self.vworld.canvas.after(UPDATE_INTERVAL, self.updateCanvas, drawQueue)
+        #print drawQueue.qsize()
         while (drawQueue.qsize() > 0):
             drawCommand = drawQueue.get()
             drawCommand()
         
 class Joystick:
     def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x']):
-        self.gMaxRobotNum = 1
         self.gRobotList = comm.robotList
         self.m = m
         self.vrobot = vrobot
