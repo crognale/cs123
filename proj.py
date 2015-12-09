@@ -441,9 +441,9 @@ def draw_track():
   global gCanvas, frame
   trackoriginx = 40
   trackoriginy = 40
-  trackwidth = 400 * 1.5
-  trackheight = 400
-  trackcutamount = 100
+  trackwidth = 840
+  trackheight = 560
+  trackcutamount = 560/4
 
   rect = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
       trackoriginx + trackwidth - trackcutamount, trackoriginy, \
