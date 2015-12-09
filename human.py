@@ -10,7 +10,8 @@ import inspect #for debugging
 global joystick
 
 import draw
-import scanning
+from Behavior import scanning
+import settings
 
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
@@ -609,12 +610,27 @@ def main():
 
   display_thread = False
 
-  # create UI
+  # create UI: two separate Tkinter windows
+  # 1. frame = course track display
+  # 2. gFrame = localization scanning display
   frame = tk.Tk()
   canvas_width = 700 # half width
   canvas_height = 380 # half height
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
+
+  # instantiate global variables gFrame and gBehavior
+  settings.init()
+
+  settings.gFrame = tk.Tk()
+  settings.gFrame.geometry('600x500')
+
+  gRobotDraw = draw.RobotDraw(settings.gFrame, tk)
+
+  # create behaviors
+  settings.gBehaviors[0] = scanning.Behavior("scanning", gRobotList, 4.0, gRobotDraw.get_queue())
+
+  gRobotDraw.start()
 
   # create 2 virtual robot data objects
   vrobot = []
@@ -663,10 +679,6 @@ def main():
 
   gCanvas.after(200, gui.updateCanvas, drawQueue)
   frame.mainloop()
-
-  frame2 = tk.Tk()
-  frame2.geometry('600x500')
-  gRobotDraw = draw.RobotDraw(frame2, tk)
 
   # create behaviors
   global gBehaviors
