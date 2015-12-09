@@ -7,6 +7,7 @@ import Queue
 from random import randint
 from tk_hamster_GUI import *
 import inspect #for debugging
+import numpy as np
 
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
@@ -126,28 +127,57 @@ def done():
   gBeepQueue.put([0, 2,2, 0])
 
 
-def waitForWhite():
+def follow():
+
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
 
+
+  gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
+  prev_idx = -1
   while (not gKillBehavior):
-    gBeepQueue.put([30, 4, 4, 0.1])
-    gBeepQueue.put([0, 0, 0, 0.1])
-    time.sleep(0.2)
+    for robot in gRobotList:
+      #(ideal proximity = 50, speed=3)
+      prox_bins = np.array([75, 70, 65, 55, 50, 40, 25, 10, 0])
+
+      prox_l = robot.get_proximity(0)
+      prox_r = robot.get_proximity(1)
+      prox = max(prox_l, prox_r)
+
+      idx = (np.abs(prox_bins - prox)).argmin()
+      if idx == 0:
+        gWheelQueue.put([0, 0, 0])
+        if prev_idx != 0:
+          print prev_idx
+          gBeepQueue.put([30, 4, 4, 0.1])
+          gBeepQueue.put([0, 0, 0, 0.1])
+          gBeepQueue.put([30, 4, 4, 0.1])
+          gBeepQueue.put([0, 0, 0, 0.1])
+          gBeepQueue.put([30, 4, 4, 0.1])
+          gBeepQueue.put([0, 4, 4, 0])
+      else:
+        speed = idx-1
+        print 'speed: ',speed, ' prox=', prox
+        gWheelQueue.put([ 1, speed, FLAG_LINETRACE])
+        if speed > 3:
+          gBeepQueue.put([0, 2, 2, 0])
+        else:
+          gBeepQueue.put([0, 6, 6, 0])
+      prev_idx = idx
+      time.sleep(0.1)
 
 def fsm_init():
   global FSM
   FSM = StateMachine()
 
   State_Start = FSM.add_state("Start")
-  State_WaitForWhite = FSM.add_state("WaitForWhite")
-  State_Done = FSM.add_state("Done")
+  State_Follow = FSM.add_state("Follow")
+  #State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
   FSM.set_current("Start")
 
-  State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
+  State_Start.add_transition("Follow", lambda: True, follow)
 
 
 def wheel_target():
@@ -163,6 +193,7 @@ def wheel_target():
     for robot in gRobotList:
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
+      robot.set_line_tracer_mode_speed(0, 0)
       if (movement[2] == FLAG_LINETRACE):
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
