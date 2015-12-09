@@ -171,7 +171,6 @@ class virtual_world:
             self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
 
         track = vrobot.track
-        print "vrobot.a", vrobot.a
         if track == "outer" and vrobot.a == pi4 * 2 and vrobot.x >= 40:
             vrobot.a = pi4 * 3
         if track == "outer" and vrobot.a == pi4 * 3 and vrobot.y <= 200:
