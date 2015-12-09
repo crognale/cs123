@@ -453,7 +453,7 @@ def draw_track():
   line = gCanvas.create_line(trackoriginx, trackheight + 40, trackoriginx + 20, trackheight + 40, width = 3)
 
   text = gCanvas.create_text(trackoriginx, trackheight + 60, font="Purisa",
-            text="28 mm")
+            text="20 mm")
 
   text = gCanvas.create_text(trackoriginx + trackwidth/2, trackheight + 60, font="Purisa",
             text="560 mm")
