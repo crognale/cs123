@@ -23,7 +23,7 @@ TURN_SPEED = 10
 FLOOR_BLACK = 60
 FLOOR_WHITE = 80
 
-gMaxRobotNum = 2
+gMaxRobotNum = 10
 gRobotList = None
 
 CLEAR_TARGET = 3
@@ -341,7 +341,6 @@ class VirtualWorldGui:
         
 class Joystick:
     def __init__(self, comm, m, gCanvas, vrobot, robot_i=0, keyBindings=['w','s','a','d','x']):
-        self.gMaxRobotNum = 1
         self.gRobotList = comm.robotList
         self.m = m
         self.vrobot = vrobot
@@ -527,32 +526,6 @@ def main():
 
   display_thread = False
 
-  # frame = tk.Tk()
-  # CANVAS_SIZE = 800
-  # gCanvas = tk.Canvas(frame, bg="white", width=CANVAS_SIZE, height=CANVAS_SIZE)
-  # gCanvas.pack(expand=1, fill='both')
-
-  # draw_track()
-
-  # # UI
-  # gHamsterBox = gCanvas.create_rectangle(BOX_X, BOX_Y, BOX_X + BOX_SIZE,
-  #     BOX_Y + BOX_SIZE, fill="white", width=BORDER_WIDTH)
-  # cleanButton = tk.Button(frame, text="Start")
-  # cleanButton.pack()
-  # cleanButton.bind('<Button-1>', StartClean)
-  # tk.Button(frame, text="Quit", command=quit).pack()
-  # tk.Button(frame, text="Start Race", command=startrace).pack()
-  # tk.Button(frame, text="Stop Threads", command=stop).pack()
-
-  # create 2 virtual robot data objects
-  vrobot = []
-  for robot_i in range(gMaxRobotNum):
-    vrobot.append ( virtual_robot() )
-    pi4 = 3.1415 / 4
-
-    # robot starting positions
-    vrobot[robot_i].set_robot_a_pos(pi4*2, -520 + robot_i * 40, +340 - robot_i * 80)
-
   # create UI
   frame = tk.Tk()
   canvas_width = 700 # half width
@@ -560,10 +533,18 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  # keyboard input
+  # create 2 virtual robot data objects
+  vrobot = []
   joystick = []
+  keyBindings = []
   for robot_i in range(gMaxRobotNum):
-    keyBindings = []
+    vrobot.append ( virtual_robot() )
+    pi4 = 3.1415 / 4
+
+    # robot starting positions
+    vrobot[robot_i].set_robot_a_pos(pi4*2, -520 + robot_i * 40, +340 - robot_i * 80)
+
+    # keyboard input
     if robot_i == 0:
       keyBindings = ['w','s','a','d','x']
     elif robot_i == 1:
