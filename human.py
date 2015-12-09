@@ -48,6 +48,10 @@ UPDATE_INTERVAL = 30
 FLAG_LINETRACE = -1
 
 vWorld = None
+gTimeOfLastBoost = None
+gBoostButtonPressed = False
+BOOST_DURATION = 2
+BOOST_REFRACTORY = 5
 
 class State:
     def __init__(self):
@@ -130,26 +134,46 @@ def done():
 def waitForWhite():
   global gBeepQueue, gWheelQueue
   global gKillBehavior
-  gWheelQueue[0].put([ 1, 5, FLAG_LINETRACE])
-  gWheelQueue[1].put([ 1, 5, FLAG_LINETRACE])
+  gWheelQueue[0].put([ 1, 3, FLAG_LINETRACE])
+  gWheelQueue[1].put([ 1, 3, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
     gBeepQueue.put([0, 0, 0, 0.1])
     time.sleep(0.2)
 
+def WaitForWhite_to_Boost():
+  global gBoostButtonPressed, gTimeOfLastBoost
+  if gBoostButtonPressed == True and ( time.time() - gTimeOfLastBoost ) > BOOST_REFRACTORY:
+    gBoostButtonPressed = False
+    gTimeOfLastBoost = time.time()
+    return True
+  return False
+
+def Boost_to_WaitForWhite():
+  time.sleep(BOOST_DURATION)
+  return True
+
+def boost():
+  global gWheelQueue
+  # 1 sec boost
+  gWheelQueue[0].put([ 1, 7, FLAG_LINETRACE])
+
 def fsm_init():
   global FSM
   FSM = StateMachine()
 
   State_Start = FSM.add_state("Start")
-  State_WaitForWhite = FSM.add_state("WaitForWhite")
+  State_WaitForWhite = FSM.add_state("WaitForWhite") # line tracing
+  State_Boost = FSM.add_state("Boost")
   State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
   FSM.set_current("Start")
 
   State_Start.add_transition("WaitForWhite", lambda: True, waitForWhite)
+  State_WaitForWhite.add_transition("Boost", WaitForWhite_to_Boost, boost)
+  State_Boost.add_transition("WaitForWhite", Boost_to_WaitForWhite, waitForWhite)
 
 
 def wheel_target(queue_ind):
@@ -196,10 +220,12 @@ def beep_target():
         robot.set_led(0, 0)
         robot.set_led(1, 0)
 
-def StartRace(event=None):
+def StartRaceButtonPressed(event=None):
   global monitor_thread, dispatch_thread
   global display_thread, beep_thread, wheel_threads
   global gNumCleared
+  global gTimeOfLastBoost
+  gTimeOfLastBoost = time.time()
 
   if (len(gRobotList) > 0):
 
@@ -222,14 +248,9 @@ def StartRace(event=None):
       wheel_threads[i].daemon = True
       wheel_threads[i].start()
 
-
-def startrace(self):
-    gEventQueue.put( "start", StartRace )
-    print "start button pressed: start monitor and dispatch threads"
-
-def stop(self):
-    print "stop threads button pressed"
-    gEventQueue.put( "done", done )
+def BoostButtonPressed(event=None):
+  global gBoostButtonPressed
+  gBoostButtonPressed = True
 
 def draw_track():
   global gCanvas, frame
@@ -291,7 +312,11 @@ class VirtualWorldGui:
 
         startRaceButton = tk.Button(m,text="Start Race")
         startRaceButton.pack(side='left')
-        startRaceButton.bind('<Button-1>', StartRace)
+        startRaceButton.bind('<Button-1>', StartRaceButtonPressed)
+
+        boostButton = tk.Button(m,text="Boost!")
+        boostButton.pack(side='left')
+        boostButton.bind('<Button-1>', BoostButtonPressed)
 
         exitButton = tk.Button(m,text="Exit")
         exitButton.pack(side='left')
@@ -435,7 +460,7 @@ class Joystick:
         a_factor_cw = 16.71 # rotation conversion, assuming linear
         a_factor2_ccw = 16
 
-        while (not self.gRobotList) or (len(self.goRobotList) <= robot_i):
+        while not self.gRobotList:
             print "waiting for robot to connect"
             time.sleep(0.1)
 
@@ -565,7 +590,7 @@ def main():
 
   # virtual world UI
   drawQueue = Queue.Queue(0)
-  vWorld = virtual_world(drawQueue, joystick, vrobot, gCanvas, canvas_width, canvas_height)
+  vWorld = virtual_world(drawQueue, joystick[0], vrobot[0], gCanvas, canvas_width, canvas_height)
   landmark = [-500, 220, -460, 180]
   vWorld.add_obstacle(landmark)
 
