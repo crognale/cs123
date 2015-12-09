@@ -371,11 +371,7 @@ def wheel_target(queue_ind):
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
         robot.set_line_tracer_mode_speed(movement[0], movement[1])
-<<<<<<< HEAD
-      else:
-=======
       elif movement[2] > 0:
->>>>>>> a9282dc4772e94cecdcbe2e4350d783b08f3678c
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
