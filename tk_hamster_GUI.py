@@ -165,6 +165,9 @@ class virtual_world:
 
             points = (x1,y1,x2,y2,x3,y3,x4,y4)
             poly_id = vrobot.poly_id
+
+            print "poly_id", poly_id
+
             self.drawQueue.put(lambda: self.canvas.coords(poly_id, points))
 
             if (self.trace):
@@ -193,6 +196,9 @@ class virtual_world:
                 a_e = vrobot.a + 3.1415/5 #emitter location
                 prox_dis = vrobot.dist_r
                 prox_l_id = vrobot.prox_r_id
+
+            print "prox_l_id", prox_l_id
+
             if (prox_dis):
                 x_e = (vrobot.l-4) * math.sin(a_e) + vrobot.x #emiter pos of left sensor
                 y_e = (vrobot.l-4) * math.cos(a_e) + vrobot.y #emiter pos of right sensor
@@ -256,9 +262,14 @@ class virtual_world:
             else:
                 border = vrobot.floor_r
                 floor_id = vrobot.floor_r_id
-                a = vrobot.a + 3.1415/7 #rough position of the left floor sensor         
+                a = vrobot.a + 3.1415/7 #rough position of the left floor sensor    
+
+            print "floor_id", floor_id
+
             x_f = (vrobot.l - 12) * math.sin(a) + vrobot.x
             y_f = (vrobot.l - 12) * math.cos(a) + vrobot.y
+
+            print "x_f, y_f:", x_f, y_f
             points = (canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2)
             self.drawQueue.put(lambda: self.canvas.coords(floor_id, points))
             if (border): 

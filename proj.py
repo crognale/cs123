@@ -7,11 +7,6 @@ import Queue
 from random import randint
 from tk_hamster_GUI import *
 
-CANVAS_SIZE = 300
-BOX_SIZE = 100
-BOX_X = int((CANVAS_SIZE / 2) - (BOX_SIZE / 2))
-BOX_Y = int((CANVAS_SIZE / 2) + (BOX_SIZE / 2))
-
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
 
@@ -730,7 +725,7 @@ def main():
   for robot_i in range(gMaxRobotNum):
     vrobot.append ( virtual_robot() )
     pi4 = 3.1415 / 4
-    vrobot[robot_i].set_robot_a_pos(pi4*2, -540, +340 - robot_i * 40)
+    vrobot[robot_i].set_robot_a_pos(pi4*2, -540 + robot_i * 20, +340 - robot_i * 40)
 
   # create UI
   frame = tk.Tk()
@@ -739,11 +734,14 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  print "vrobot[]:", vrobot[0].get_robot_a_pos(), vrobot[1].get_robot_a_pos()
-
   # keyboard input
   joystick = []
-  for robot_i in range(gMaxRobotNum):  
+  for robot_i in range(gMaxRobotNum):
+    keyBindings = []
+    if robot_i == 0:
+      keyBindings = ['w','s','a','d','x']
+    elif robot_i == 1:
+      keyBindings = ['i','k','j','l',',']
     joystick.append( Joystick(comm, frame, gCanvas, vrobot[robot_i], robot_i) )
     poly_points = [0,0,0,0,0,0,0,0]
     joystick[robot_i].vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='blue') #robot
@@ -751,16 +749,6 @@ def main():
     joystick[robot_i].vrobot.prox_r_id = gCanvas.create_line(0,0,0,0, fill="red")
     joystick[robot_i].vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
     joystick[robot_i].vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
-
-  # joystickAI = Joystick(comm, frame, gCanvas, vrobotAI, robot_i = 1)
-  # poly_points = [0,0,0,0,0,0,0,0]
-  # joystickAI.vrobot.poly_id = gCanvas.create_polygon(poly_points, fill='red') #robot
-  # joystickAI.vrobot.prox_l_id = gCanvas.create_line(0,0,0,0, fill="red") #prox sensors  ---- here
-  # joystickAI.vrobot.prox_r_id = gCanvas.create_line(0,0,0,0, fill="red")
-  # joystickAI.vrobot.floor_l_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white") #floor sensors
-  # joystickAI.vrobot.floor_r_id = gCanvas.create_oval(0,0,0,0, outline="white", fill="white")
-
-  #joystickAI = Joystick(comm, frame, gCanvas, vrobotAI, robot_i = 1)
 
     time.sleep(1)
 
