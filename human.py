@@ -9,6 +9,9 @@ from tk_hamster_GUI import *
 import inspect #for debugging
 global joystick
 
+import draw
+import scanning
+
 BAR_WIDTH = 40
 MAX_BAR_SIZE = 150.0
 
@@ -57,6 +60,8 @@ BOOST_DURATION = 2
 BOOST_REFRACTORY = 5
 COLLIDE_DURATION = 1
 joystick = []
+
+gBehaviors = None
 
 class State:
     def __init__(self):
@@ -156,9 +161,18 @@ def WaitForWhite_to_Boost():
   return False
 
 def boost():
-  global gWheelQueue
+  global gWheelQueue, gBeepQueue
   # 1 sec boost
   gWheelQueue[0].put([ 1, 7, FLAG_LINETRACE])
+  boostSongNotes = [47, 52, 56, 59, 56, 59]
+  boostSongDuration = [0.5*1/3, 0.5*1/3, 0.5*1/3, 0.5*3/4, 0.5*1/4, 0.5*2]
+  for i in range(len(boostSongNotes)):
+    gBeepQueue.put([boostSongNotes[i], 2, 2, boostSongDuration[i]])
+  gBeepQueue.put([0, 2,2, 0])
+
+  # for i in range(len(boostSongNotes)):
+  #   gBeepQueue.put([boostSongNotes[i], 2, 2, boostSongDuration])
+  # gBeepQueue.put([0,0,0,0])
 
 def Boost_to_WaitForWhite():
   time.sleep(BOOST_DURATION)
@@ -259,7 +273,7 @@ def StartRaceButtonPressed(event=None):
   global display_thread, beep_thread, wheel_threads
   global gNumCleared
   global gTimeOfLastBoost
-  gTimeOfLastBoost = time.time()
+  gTimeOfLastBoost = time.time() - BOOST_REFRACTORY #allow immediate boost
 
   if (len(gRobotList) > 0):
 
@@ -632,10 +646,6 @@ def main():
     update_vrobot_thread.daemon = True
     update_vrobot_thread.start()
 
-  frame2 = tk.Tk()
-  gCanvas2 = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
-
-
   # virtual world UI
   drawQueue = Queue.Queue(0)
   vWorld = virtual_world(drawQueue, joystick[0], vrobot[0], gCanvas, canvas_width, canvas_height)
@@ -653,6 +663,16 @@ def main():
 
   gCanvas.after(200, gui.updateCanvas, drawQueue)
   frame.mainloop()
+
+  frame2 = tk.Tk()
+  frame2.geometry('600x500')
+  gRobotDraw = draw.RobotDraw(frame2, tk)
+
+  # create behaviors
+  global gBehaviors
+  gBehaviors[0] = scanning.Behavior("scanning", gRobotList, 4.0, gRobotDraw.get_queue())
+  gRobotDraw.start()
+  frame2.mainloop()
 
   gQuit = True
 
