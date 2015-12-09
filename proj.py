@@ -440,7 +440,8 @@ def draw_track():
   trackheight = 560
   trackcutamount = 560/4
 
-  rect = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
+  #outer track
+  outertrack = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
       trackoriginx + trackwidth - trackcutamount, trackoriginy, \
       trackoriginx + trackwidth, trackoriginy + trackcutamount, \
       trackoriginx + trackwidth, trackoriginy + trackheight - trackcutamount, \
@@ -449,6 +450,28 @@ def draw_track():
       trackoriginx, trackoriginy + trackheight - trackcutamount, \
       trackoriginx, trackoriginy + trackcutamount, \
       outline="black", fill="white", width=2)
+
+  # inner track
+  trackoriginx = 40+80
+  trackoriginy = 40+80
+  trackwidth = 840 - 80*2
+  trackheight = 560 - 80*2
+  trackcutamount = (560 - 80*2)/4
+  innertrack = gCanvas.create_polygon(trackoriginx + trackcutamount, trackoriginy, \
+      trackoriginx + trackwidth - trackcutamount, trackoriginy, \
+      trackoriginx + trackwidth, trackoriginy + trackcutamount, \
+      trackoriginx + trackwidth, trackoriginy + trackheight - trackcutamount, \
+      trackoriginx + trackwidth - trackcutamount, trackoriginy + trackheight, \
+      trackoriginx + trackcutamount, trackoriginy + trackheight, \
+      trackoriginx, trackoriginy + trackheight - trackcutamount, \
+      trackoriginx, trackoriginy + trackcutamount, \
+      outline="black", fill="white", width=2)
+
+  trackoriginx = 40
+  trackoriginy = 40
+  trackwidth = 840
+  trackheight = 560
+  trackcutamount = 560/4
 
   line = gCanvas.create_line(trackoriginx, trackheight + 40, trackoriginx + 20, trackheight + 40, width = 3)
 
@@ -725,7 +748,9 @@ def main():
   for robot_i in range(gMaxRobotNum):
     vrobot.append ( virtual_robot() )
     pi4 = 3.1415 / 4
-    vrobot[robot_i].set_robot_a_pos(pi4*2, -540 + robot_i * 20, +340 - robot_i * 40)
+
+    # robot starting positions
+    vrobot[robot_i].set_robot_a_pos(pi4*2, -520 + robot_i * 40, +340 - robot_i * 80)
 
   # create UI
   frame = tk.Tk()
@@ -759,7 +784,7 @@ def main():
   # virtual world UI
   drawQueue = Queue.Queue(0)
   vWorld = virtual_world(drawQueue, joystick, vrobot, gCanvas, canvas_width, canvas_height)
-  landmark = [-560, 260, -520, 220]
+  landmark = [-500, 220, -460, 180]
   vWorld.add_obstacle(landmark)
 
   draw_world_thread = threading.Thread(target=draw_virtual_world, args=(vWorld,))
