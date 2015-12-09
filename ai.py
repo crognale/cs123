@@ -49,6 +49,10 @@ FLAG_LINETRACE = -1
 
 vWorld = None
 
+#FSM global variables
+stopped = False
+track = 'outer'
+
 class State:
     def __init__(self):
       self.name = ''
@@ -131,6 +135,7 @@ def follow():
 
   global gBeepQueue, gWheelQueue
   global gKillBehavior
+  global stopped
 
 
   gWheelQueue.put([ 1, 5, FLAG_LINETRACE])
@@ -147,6 +152,7 @@ def follow():
       idx = (np.abs(prox_bins - prox)).argmin()
       if idx == 0:
         gWheelQueue.put([0, 0, 0])
+        stopped = True
         if prev_idx != 0:
           print prev_idx
           gBeepQueue.put([30, 4, 4, 0.1])
@@ -156,6 +162,7 @@ def follow():
           gBeepQueue.put([30, 4, 4, 0.1])
           gBeepQueue.put([0, 4, 4, 0])
       else:
+        stopped=False
         speed = idx-1
         print 'speed: ',speed, ' prox=', prox
         gWheelQueue.put([ 1, speed, FLAG_LINETRACE])
@@ -166,18 +173,54 @@ def follow():
       prev_idx = idx
       time.sleep(0.1)
 
+def blockedAhead():
+  for i in range(15):
+    if not stopped:
+      return False
+    time.sleep(0.1)
+  return True
+
+def switching():
+  global gWheelQueue, track
+  gBeepQueue.put([70, 1, 1, 0.2])
+  gBeepQueue.put([0, 0, 0, 0])
+  #while (not gKillBehavior):
+  for robot in gRobotList:
+    if track == 'outer':
+      gWheelQueue.put([100, -100, 0.2])
+    else:
+      gWheelQueue.put([-100, 100, 0.2])
+    gWheelQueue.put([50, 50, 0.2])
+
+
+def switchDelay():
+  time.sleep(0.1)
+  return True
+
+def switched():
+  global track
+  if track == 'outer':
+    track = 'inner'
+  else:
+    track = 'outer'
+
 def fsm_init():
   global FSM
   FSM = StateMachine()
 
   State_Start = FSM.add_state("Start")
   State_Follow = FSM.add_state("Follow")
+  State_Switching = FSM.add_state("Switching")
+  State_Switched = FSM.add_state("Switched")
   #State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
   FSM.set_current("Start")
 
   State_Start.add_transition("Follow", lambda: True, follow)
+  State_Follow.add_transition("Switching", blockedAhead, switching)
+  State_Switching.add_transition("Switched", switchDelay, switched)
+  State_Switched.add_transition("Follow", lambda: True, follow)
 
 
 def wheel_target():
@@ -202,7 +245,6 @@ def wheel_target():
         time.sleep(movement[2])
         robot.set_wheel(0, 0)
         robot.set_wheel(1, 0)
-        # update virtual world's 2 virtual robots
 
 def beep_target():
   global gBeepQueue
