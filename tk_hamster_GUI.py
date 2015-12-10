@@ -130,6 +130,13 @@ class virtual_world:
     def draw_line(self, x1, y1, x2, y2):
         self.drawQueue.put(lambda: self.canvas.create_line([x1,y1,x2,y2], fill='red'))
 
+    # arguments: text is string to display, angle is angle in radians from a line eminating from the forward face of the robot (cw is +ve)
+    # distance is the radial distance in pixels from the center of the robot that the text is to be displayed
+    def draw_text_around_robot(self, text, angle, distance):
+        x_text = canvas_width + vrobot.x + distance * math.sin(vrobot.a + angle)     # x-coord of text
+        y_text = canvas_height - (vrobot.y + distance * math.cos(vrobot.a + angle))  # y-coord of text
+        self.drawQueue.put(lambda: self.canvas.create_text(x_text, y_text, font="Purisa", text=text))
+
     def draw_robot(self):
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
@@ -171,7 +178,6 @@ class virtual_world:
             self.drawQueue.put(lambda: self.canvas.create_polygon([x1,y1,x2,y2,x3,y3], outline="blue"))
 
         track = vrobot.track
-        print "vrobot.a", vrobot.a
         if track == "outer" and vrobot.a == pi4 * 2 and vrobot.x >= 40:
             vrobot.a = pi4 * 3
         if track == "outer" and vrobot.a == pi4 * 3 and vrobot.y <= 200:
@@ -256,8 +262,6 @@ class virtual_world:
             x_p = prox_dis * math.sin(vrobot.a) + x_e
             y_p = prox_dis * math.cos(vrobot.a) + y_e
             vrobot.location.append( (x_p, y_p) )
-            #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a, 
-            #print "store ", x_p, y_p
 
             # right sensor
             a_e = vrobot.a + 3.1415/5 #emitter location
@@ -268,8 +272,6 @@ class virtual_world:
             x_p = prox_dis * math.sin(vrobot.a) + x_e
             y_p = prox_dis * math.cos(vrobot.a) + y_e
             vrobot.location.append( (x_p, y_p) )
-            #print "store_prox test:",x_e, y_e, x_p, y_p, prox_dis, vrobot.a
-            #print "store ", x_p, y_p
 
     def draw_floor(self, side):
         canvas_width = self.canvas_width
@@ -300,4 +302,5 @@ class virtual_world:
                 self.drawQueue.put(lambda: self.canvas.create_oval(canvas_width+x_f-2, canvas_height-y_f-2, canvas_width+x_f+2, canvas_height-y_f+2, fill='black'))
         else:
             self.drawQueue.put(lambda: self.canvas.itemconfig(floor_id, outline = "white", fill="white"))
+
 

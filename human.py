@@ -47,6 +47,7 @@ gEventQueue = Queue.Queue()
 gBeepQueue = Queue.Queue()
 #g___Queue[0] is human, [1] is AI
 gWheelQueue = [Queue.Queue(), Queue.Queue()]
+gProxQueue = Queue.Queue()
 
 FSM = None
 
@@ -57,12 +58,16 @@ vWorld = None
 gTimeOfLastBoost = None
 gBoostButtonPressed = False
 gCollideButtonPressed = False
+gSwitchInnerButtonPressed = False
+gSwitchOuterButtonPressed = False
 BOOST_DURATION = 2
 BOOST_REFRACTORY = 5
 COLLIDE_DURATION = 1
 joystick = []
 
 gBehaviors = None
+PROX_THRESHOLD_DONE = 100 # > 100 = object
+FLOOR_THRESHOLD_LANE = 40 # < 40 = black
 
 class State:
     def __init__(self):
@@ -143,14 +148,25 @@ def done():
 
 
 def waitForWhite():
-  global gBeepQueue, gWheelQueue
+  global gBeepQueue, gWheelQueue, gProxQueue
   global gKillBehavior
-  gWheelQueue[0].put([ 1, 3, FLAG_LINETRACE])
-  gWheelQueue[1].put([ 1, 3, FLAG_LINETRACE])
+  global joystick
+
+  # works for 1 robot only
+  if joystick[0].vrobot.track == "outer":
+    gWheelQueue[0].put([ 2, 3, FLAG_LINETRACE])
+  else: # inner
+    gWheelQueue[0].put([ 1, 3, FLAG_LINETRACE])
 
   while (not gKillBehavior):
     gBeepQueue.put([30, 4, 4, 0.1])
     gBeepQueue.put([0, 0, 0, 0.1])
+
+    if joystick[0].vrobot.track == "outer":
+      gProxQueue.put([180])
+    else: # inner
+      gProxQueue.put([1])
+
     time.sleep(0.2)
 
 def WaitForWhite_to_Boost():
@@ -195,6 +211,64 @@ def Collide_to_WaitForWhite():
   time.sleep(COLLIDE_DURATION)
   return True
 
+def WaitForWhite_to_SwitchInner():
+  global gSwitchInnerButtonPressed
+  if gSwitchInnerButtonPressed == True:
+    gSwitchInnerButtonPressed = False
+    return True
+  return False
+
+def WaitForWhite_to_SwitchOuter():
+  global gSwitchOuterButtonPressed
+  if gSwitchOuterButtonPressed == True:
+    gSwitchOuterButtonPressed = False
+    return True
+  return False
+
+def SwitchInner_to_WaitForWhite():
+  
+  for robot in gRobotList:
+    if robot.get_floor(0) < FLOOR_THRESHOLD_LANE:
+      return True
+  return False
+
+
+def SwitchOuter_to_WaitForWhite():
+
+  for robot in gRobotList:
+    if robot.get_floor(0) < FLOOR_THRESHOLD_LANE:
+      return True
+  return False
+
+def switchInner():
+  global gWheelQueue
+  global joystick
+  gWheelQueue[0].put([ 50, -50, 0.4]) #turn to the right
+  gWheelQueue[0].put([50,50,1.2]) #move to other lane
+
+  joystick[0].vrobot.track = "inner"
+  print "inner track"
+
+
+def switchOuter():
+  global gWheelQueue
+  global joystick
+  gWheelQueue[0].put([ -50, 50, 0.4]) #turn to the left
+  gWheelQueue[0].put([50,50,1.2]) #move to other lane
+
+  joystick[0].vrobot.track = "outer"
+
+def WaitForWhite_to_Done():
+  for robot in gRobotList:
+
+    # read psd distance to portA
+    robot.set_io_mode(0, 0x00) # use Analog to Digital Converter mode because we want sensor value that's continuous / analog with range of values
+    portA = robot.get_port(0) # read proximity sensor value
+
+    if portA > PROX_THRESHOLD_DONE:
+      return True
+  return False
+
 def fsm_init():
   global FSM
   FSM = StateMachine()
@@ -203,6 +277,8 @@ def fsm_init():
   State_WaitForWhite = FSM.add_state("WaitForWhite") # line tracing
   State_Boost = FSM.add_state("Boost")
   State_Collide = FSM.add_state("Collide")
+  State_SwitchInner = FSM.add_state("SwitchInner")
+  State_SwitchOuter = FSM.add_state("SwitchOuter")
   State_Done = FSM.add_state("Done")
 
   FSM.set_start("Start")
@@ -213,6 +289,11 @@ def fsm_init():
   State_Boost.add_transition("WaitForWhite", Boost_to_WaitForWhite, waitForWhite)
   State_WaitForWhite.add_transition("Collide", WaitForWhite_to_Collide, collide)
   State_Collide.add_transition("WaitForWhite", Collide_to_WaitForWhite, waitForWhite)
+  State_WaitForWhite.add_transition("SwitchInner", WaitForWhite_to_SwitchInner, switchInner)
+  State_WaitForWhite.add_transition("SwitchOuter", WaitForWhite_to_SwitchOuter, switchOuter)
+  State_SwitchInner.add_transition("WaitForWhite", SwitchInner_to_WaitForWhite, waitForWhite)
+  State_SwitchOuter.add_transition("WaitForWhite", SwitchOuter_to_WaitForWhite, waitForWhite)
+  State_WaitForWhite.add_transition("Done", WaitForWhite_to_Done, done)
 
 
 def wheel_target(queue_ind):
@@ -230,6 +311,7 @@ def wheel_target(queue_ind):
       robot = gRobotList[queue_ind]
       robot.set_wheel(0, movement[0])
       robot.set_wheel(1, movement[1])
+      robot.set_line_tracer_mode_speed(0,0)
 
       # joystick[0].vrobot.sl = 30
       # joystick[0].vrobot.sr = 30
@@ -269,9 +351,23 @@ def beep_target():
         robot.set_led(0, 0)
         robot.set_led(1, 0)
 
+def prox_target():
+  global gProxQueue
+  global gQuit
+
+  #Queue element format: [degree to turn prox sensor]
+  while not gQuit:
+    prox = gProxQueue.get(True)
+    for robot in gRobotList:
+
+        # write servo position to portB
+        portB = prox[0]
+        robot.set_io_mode( 1, 0x08 ) # use Analog Servo Control
+        robot.set_port(1, portB)
+
 def StartRaceButtonPressed(event=None):
   global monitor_thread, dispatch_thread
-  global display_thread, beep_thread, wheel_threads
+  global beep_thread, wheel_threads
   global gNumCleared
   global gTimeOfLastBoost
   gTimeOfLastBoost = time.time() - BOOST_REFRACTORY #allow immediate boost
@@ -291,6 +387,11 @@ def StartRaceButtonPressed(event=None):
     beep_thread.daemon = True
     beep_thread.start()
 
+    prox_thread = threading.Thread(target = prox_target)
+    prox_thread.daemon = True
+    prox_thread.start()
+
+
     wheel_threads = []
     for i in [0, 1]:
       wheel_threads.append(threading.Thread(target = wheel_target, args=(i,)))
@@ -307,6 +408,13 @@ def CollideButtonPressed(event=None):
   global gCollideButtonPressed
   gCollideButtonPressed = True
 
+def SwitchInnerButtonPressed(event=None):
+  global gSwitchInnerButtonPressed
+  gSwitchInnerButtonPressed = True
+
+def SwitchOuterButtonPressed(event=None):
+  global gSwitchOuterButtonPressed
+  gSwitchOuterButtonPressed = True
 
 def draw_track():
   global gCanvas, frame
@@ -377,6 +485,14 @@ class VirtualWorldGui:
         collideButton = tk.Button(m,text="Collide <!>")
         collideButton.pack(side='left')
         collideButton.bind('<Button-1>', CollideButtonPressed)
+
+        switchInnerButton = tk.Button(m,text="Switch Inner")
+        switchInnerButton.pack(side='left')
+        switchInnerButton.bind('<Button-1>', SwitchInnerButtonPressed)
+
+        switchOuterButton = tk.Button(m,text="Switch Outer")
+        switchOuterButton.pack(side='left')
+        switchOuterButton.bind('<Button-1>', SwitchOuterButtonPressed)
 
         exitButton = tk.Button(m,text="Exit")
         exitButton.pack(side='left')
@@ -527,7 +643,6 @@ class Joystick:
 
         while not gQuit:
             if self.gRobotList and len(self.gRobotList) > self.robot_i:
-                print 'update virtual robot for ', self.robot_i
                 robot = self.gRobotList[self.robot_i]
 
                 t = time.time()
@@ -589,12 +704,30 @@ def draw_virtual_world(virtual_world):
             virtual_world.store_prox()
             virtual_world.draw_floor("left")
             virtual_world.draw_floor("right")
+
+            # draw scanning output in virtual_world
+            # get value of scanning from gBehavior variable
+            
+            # look for behaviors in global list that are scanning
+            for i in range(0, len(settings.gBehaviors)):
+              if (settings.gBehaviors[i].get_name() == "scanning"):
+
+                # unable to get landmarks from scanning behavior
+                landmarks = settings.landmarks
+                for landmarks_index in range(6):
+                  pi6 = 3.1415 / 6
+                  angle_from_robot = landmarks_index * pi6 + pi6/2 #radians
+                  if (landmarks >> landmarks_index) & 0b000001 == 1:
+                    print "landmark drawn!!"
+                    # draw landmark; more robust if implemented as a function of virtual_world
+                    virtual_world.draw_text_around_robot("obs", angle_from_robot, 40)
+
         time.sleep(0.1)
 
 def main():
   global gRobotList, gQuit
   global gCanvas, frame, gHamsterBox
-  global display_thread, monitor_thread, dispatch_thread
+  global monitor_thread, dispatch_thread
   global gBeepQueue, gWheelQueue, drawQueue
   global vWorld
   global joystick
@@ -608,8 +741,6 @@ def main():
   monitor_thread = False
   dispatch_thread= False
 
-  display_thread = False
-
   # create UI: two separate Tkinter windows
   # 1. frame = course track display
   # 2. gFrame = localization scanning display
@@ -619,15 +750,11 @@ def main():
   gCanvas = tk.Canvas(frame, bg="white", width=canvas_width*2, height=canvas_height*2)
   draw_track()
 
-  # instantiate global variables gFrame and gBehavior
   settings.init()
-
   settings.gFrame = tk.Tk()
   settings.gFrame.geometry('600x500')
-
   gRobotDraw = draw.RobotDraw(settings.gFrame, tk)
-
-  # create behaviors
+  # create scanning behavior
   settings.gBehaviors[0] = scanning.Behavior("scanning", gRobotList, 4.0, gRobotDraw.get_queue())
 
   gRobotDraw.start()
@@ -679,12 +806,6 @@ def main():
 
   gCanvas.after(200, gui.updateCanvas, drawQueue)
   frame.mainloop()
-
-  # create behaviors
-  global gBehaviors
-  gBehaviors[0] = scanning.Behavior("scanning", gRobotList, 4.0, gRobotDraw.get_queue())
-  gRobotDraw.start()
-  frame2.mainloop()
 
   gQuit = True
 
