@@ -50,7 +50,6 @@ FLAG_LINETRACE = -1
 vWorld = None
 
 #FSM global variables
-stopped = False
 track = 'outer'
 
 class State:
@@ -121,6 +120,21 @@ class StateMachine:
             gEventQueue.put([toState, callback])
         time.sleep(0.1)
 
+def write_servo_position(deg):
+  global gRobotList
+  for robot in gRobotList:
+    robot.set_io_mode(1, 0x08)
+    robot.set_port(1, deg);
+
+    pass #move the servo motor to deg
+
+def read_psd_distance():
+    for robot in gRobotList:
+      robot.set_io_mode(0, 0x00)
+      dist = robot.get_port(0) 
+      #print 'read_psd_distance: ',robot.get_port(0)
+      return dist
+
 
 def done():
   global gBeepQueue, gWheelQueue
@@ -132,46 +146,27 @@ def done():
 
 
 def follow():
-
   global gBeepQueue, gWheelQueue
   global gKillBehavior
   global stopped
 
-
   if track=='inner':
     follow_mode = 1
+    servo_position=1
   else:
     follow_mode = 2
+    servo_position=180
 
   gWheelQueue.put([ follow_mode, 5, FLAG_LINETRACE])
+  write_servo_position(servo_position)
   while (not gKillBehavior):
+    print 'psd distance: ', read_psd_distance()
     for robot in gRobotList:
-      #(ideal proximity = 50, speed=3)
-      prox_bins = np.array([75, 70, 65, 55, 50, 40, 25, 10, 0])
-
-      prox_l = robot.get_proximity(0)
-      prox_r = robot.get_proximity(1)
-      prox = max(prox_l, prox_r)
-
-      idx = (np.abs(prox_bins - prox)).argmin()
-      if idx == 0:
-        gWheelQueue.put([0, 0, 0])
-        stopped = True
-      else:
-        stopped=False
-        speed = idx-1
-        print 'speed: ',speed, ' prox=', prox
-        gWheelQueue.put([ follow_mode, speed, FLAG_LINETRACE])
-        if speed > 5:
-          gBeepQueue.put([0, 2, 2, 0])
-        elif speed > 3:
-          gBeepQueue.put([0, 6, 6, 0])
-        else:
-          gBeepQueue.put([0, 4, 4, 0])
+      gWheelQueue.put([ follow_mode, 7, FLAG_LINETRACE])
       time.sleep(0.1)
 
 def blockedAhead():
-  block_threshold = 50
+  block_threshold = 40
   for robot in gRobotList:
     prox_l = robot.get_proximity(0)
     prox_r = robot.get_proximity(1)
@@ -181,15 +176,27 @@ def blockedAhead():
 
 def switching():
   global gWheelQueue, track
-  gBeepQueue.put([70, 1, 1, 0.2])
-  gBeepQueue.put([0, 0, 0, 0])
-  #while (not gKillBehavior):
+  left_seq = [58, 4, 0, 0.1]
+  right_seq = [70, 0, 4, 0.1]
+  beeps = [left_seq, right_seq]
+
+
+  write_servo_position(90)
   for robot in gRobotList:
-    if track == 'outer':
-      gWheelQueue.put([100, -100, 0.1])
+    if track == 'outer': #will be inner
+      beep_seq = [0, 1]
+      gWheelQueue.put([50, -50, 0.4])
     else:
-      gWheelQueue.put([-100, 100, 0.1])
+      beep_seq = [1, 0]
+      gWheelQueue.put([-50, 50, 0.4])
+
     gWheelQueue.put([100, 100, 0])
+
+    gBeepQueue.put(beeps[beep_seq[0]])
+    gBeepQueue.put([0, 0, 0, 0.1])
+    gBeepQueue.put(beeps[beep_seq[1]])
+    gBeepQueue.put([0, 0, 0, 0])
+
 
 
 def onWhite():
